@@ -1,0 +1,100 @@
+import mongoose from "mongoose";
+
+const requestedSchema = new mongoose.Schema(
+    {
+        componentName: {
+            type: String,
+            required: true
+        },
+
+        quantity: {
+            type: Number,
+            required: true
+        }
+    }
+);
+
+const returnSchema = new mongoose.Schema(
+    {
+        returnedQuantity: {
+            type: Number,
+            default: 0
+        },
+
+        returnDate: {
+            type: Date,
+            default: null
+        }
+    }
+);
+
+const issuedSchema = new mongoose.Schema(
+    {
+        issuedComponent: {
+            type: String,
+            default: ""
+        },
+
+        issuedQuantity: {
+            type: Number,
+            default: 0
+        },
+
+        return: [returnSchema]
+    }
+);
+
+const requestSchema = new mongoose.Schema(
+    {
+        usersId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Users",
+            required: true
+        },
+
+        referenceId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Users",
+            required: true
+        },
+
+        description: {
+            type: String,
+            required: true
+        },
+
+        requestDate: {
+            type: Date,
+            default: Date.now
+        },
+
+        requestedDays: {
+            type: Number,
+            required: true
+        },
+
+        requestedComponents: [requestedSchema],
+
+        issued: [issuedSchema],
+
+        issuedDate: {
+            type: Date,
+            default: null
+        },
+
+        isAllReturned: {
+            type: Boolean,
+            default: false
+        },
+
+        requestStatus: {
+            type: String,
+            enum: ["approved", "pending", "rejected"],
+            default: "pending"
+        }
+    }
+);
+
+const Requests = mongoose.model("Requests", requestSchema);
+
+export default Requests;
