@@ -31,4 +31,4 @@ function ed25519KeygenMiddleware(req, res, next) {
     return res.status(201).send('Ed25519 key pair created.');
 }
 
-module.exports = ed25519KeygenMiddleware;
+module.exports = {ed25519KeygenMiddleware};

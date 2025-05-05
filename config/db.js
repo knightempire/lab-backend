@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+require('dotenv').config(); 
+const mongoose = require('mongoose');
 
 let db;
 
@@ -20,4 +21,4 @@ const getDb = () => {
   return db;
 };
 
-export { connectToDb, getDb };
+module.exports = { connectToDb, getDb };
