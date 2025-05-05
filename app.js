@@ -25,6 +25,7 @@ app.get('/', (req, res) => {
     }
 });
 
+app.use(express.json());
 app.use('/api/products', productRoutes);
 
 connectToDb().then(() => {

@@ -1,5 +1,5 @@
 // controllers/product.controllers.js
-const { default: Components } = require('../models/component.model');
+const { default: Products } = require('../models/product.model');
 
 //Function to add Product
 const addProduct = async (req, res) => {
@@ -18,7 +18,7 @@ const addProduct = async (req, res) => {
 
         // Check if product already exists
         console.log('Checking if product already exists');
-        const existingProduct = await Components.findOne({ name });
+        const existingProduct = await Products.findOne({ name });
         if (existingProduct) {
             console.log('product already exists:', name);
             return res.status(400).json({ message: 'product already exists' });
@@ -26,7 +26,7 @@ const addProduct = async (req, res) => {
 
         // Create a new product instance
         console.log('Creating new product with name:', name);
-        const newProduct = new Components({name, quantity, damagedQuantity, inStock});
+        const newProduct = new Products({name, quantity, damagedQuantity, inStock});
 
         // Save the product to the database
         console.log('Saving new product to the database');
@@ -54,7 +54,7 @@ const addProduct = async (req, res) => {
 const fetchAllProducts = async (req, res) => {
     try {
         //Fetch all Products
-        const products = await Components.find();
+        const products = await Products.find();
 
         let text = 'Products fetched successfully';
 
@@ -67,7 +67,13 @@ const fetchAllProducts = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: text,
-            components: products,
+            components: products.map(product => ({
+                id: product._id,
+                name: product.name,
+                quantity: product.quantity,
+                damagedQuantity: product.damagedQuantity,
+                inStock: product.inStock
+            })),
         });
     } catch (err) {
         console.error('Error in fetchAllProducts:', err);
@@ -78,19 +84,19 @@ const fetchAllProducts = async (req, res) => {
 //Function to display a product
 const fetchProduct = async (req, res) => {
     try {
-        const name = req.param.name;
+        const id = req.param.id;
 
         //Ensure product name is provided
-        if (!name) {
+        if (!id) {
             return res.status(400).json({message: "name of the product is required."})
         }
 
         //Fetch Product
-        const product = await Components.findOne({ name });
+        const product = await Products.findOne({ name: id });
 
         //Product not found
         if (!product) {
-            return res.status(404).json({message: `${name} doesn't exist.`});
+            return res.status(404).json({message: `${id} doesn't exist.`});
         }
 
         //Send the product details

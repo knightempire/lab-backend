@@ -5,6 +5,6 @@ const { addProduct, fetchAllProducts, fetchProduct } = require('../controllers/p
 
 product.post('/add', addProduct);
 product.get('/get', fetchAllProducts);
-product.get('/get/:name', fetchProduct);
+product.get('/get/:id', fetchProduct);
 
 module.exports = product;
