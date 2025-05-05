@@ -21,6 +21,11 @@ const componentSchema = new mongoose.Schema(
         inStock: {
             type: Number,
             required: true
+        },
+
+        isDisplay: {
+            type: Boolean,
+            default: true,
         }
     }
 );
