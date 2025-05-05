@@ -78,7 +78,7 @@ const fetchAllProducts = async (req, res) => {
 //Function to display a product
 const fetchProduct = async (req, res) => {
     try {
-        const name = req.query.name;
+        const name = req.param.name;
 
         //Ensure product name is provided
         if (!name) {
@@ -105,4 +105,4 @@ const fetchProduct = async (req, res) => {
     }
 }
 
-module.exports = { addProduct, fetchProducts: fetchAllProducts, fetchProduct };
+module.exports = { addProduct, fetchProduct, fetchAllProducts };
