@@ -84,19 +84,21 @@ const fetchAllProducts = async (req, res) => {
 //Function to display a product
 const fetchProduct = async (req, res) => {
     try {
-        const id = req.param.id;
+        const { id } = req.params;
 
-        //Ensure product name is provided
-        if (!id) {
-            return res.status(400).json({message: "name of the product is required."})
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json(
+                formatResponse(400, 'Invalid product ID format')
+            );
         }
 
         //Fetch Product
-        const product = await Products.findOne({ name: id });
+        const product = await Products.findById(id);
 
         //Product not found
         if (!product) {
-            return res.status(404).json({message: `${id} doesn't exist.`});
+            return res.status(404).json({message: `Product with Id: ${id} doesn't exist.`});
         }
 
         //Send the product details
