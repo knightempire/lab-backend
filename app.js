@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { connectToDb, getDb } from './config/db.js';
+const ed25519KeygenMiddleware = require('./middleware/rsa/key.js'); 
+
 
 dotenv.config();
 
@@ -10,6 +12,9 @@ const port = process.env.PORT || 3000;
 const app = express();
 
 app.use(cors());
+
+app.get('/keys', ed25519KeygenMiddleware);
+
 
 app.get('/', (req, res) => {
     const db = getDb();
