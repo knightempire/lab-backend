@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             unique: true,
-            match: /^\S+@\S+\.\S+$/ // Ensures valid email format
+            match: /^\S+@\S+\.\S+$/
         },
 
         rollNo: {
@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
         phoneNo: {
             type: String,
             required: true,
-            match: /^[0-9]{10}$/ // Ensures 10-digit phone number
+            match: /^[0-9]{10}$/
         },
 
         password: {
@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
         }
     },
     {
-        timestamps: true // Automatically add createdAt and updatedAt fields
+        timestamps: true
     }
 );
 
