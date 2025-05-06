@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
-const componentSchema = new mongoose.Schema(
+const productSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -21,10 +21,15 @@ const componentSchema = new mongoose.Schema(
         inStock: {
             type: Number,
             required: true
+        },
+
+        isDisplay: {
+            type: Boolean,
+            default: true,
         }
     }
 );
 
-const Components = mongoose.model("Components", componentSchema);
+const Products = mongoose.model("Products", productSchema);
 
-export default Components;
+module.exports = Products;

@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const { connectToDb, getDb } = require("./config/db.js");
 const { ed25519KeygenMiddleware } = require("./middleware/rsa/key.js");
+const productRoutes = require('./routers/product');
 
 dotenv.config();
 
@@ -23,6 +24,9 @@ app.get('/', (req, res) => {
         res.send('Hi Dev The Database is not connected.');
     }
 });
+
+app.use(express.json());
+app.use('/api/products', productRoutes);
 
 connectToDb().then(() => {
     app.listen(port, () => {
