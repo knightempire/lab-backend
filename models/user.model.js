@@ -1,5 +1,3 @@
-import mongoose from "mongoose";
-
 const userSchema = new mongoose.Schema(
     {
         name: {
@@ -11,7 +9,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             unique: true,
-            match: /^\S+@\S+\.\S+$/
+            match: /^\S+@\S+\.\S+$/ // Ensures valid email format
         },
 
         rollNo: {
@@ -23,7 +21,7 @@ const userSchema = new mongoose.Schema(
         phoneNo: {
             type: String,
             required: true,
-            match: /^[0-9]{10}$/
+            match: /^[0-9]{10}$/ // Ensures 10-digit phone number
         },
 
         password: {
@@ -40,12 +38,14 @@ const userSchema = new mongoose.Schema(
         isAdmin: {
             type: Boolean,
             required: true
+        },
+
+        isActive: {  
+            type: Boolean,
+            default: true 
         }
     },
-
-    {timestamps: true}
+    {
+        timestamps: true // Automatically add createdAt and updatedAt fields
+    }
 );
-
-const Users = mongoose.model("Users", userSchema);
-
-export default Users;
