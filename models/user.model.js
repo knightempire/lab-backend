@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const userSchema = new mongoose.Schema(
     {
         name: {
@@ -49,3 +51,7 @@ const userSchema = new mongoose.Schema(
         timestamps: true // Automatically add createdAt and updatedAt fields
     }
 );
+
+const Users = mongoose.model("Users", userSchema);
+
+module.exports = Users;

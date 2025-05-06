@@ -1,5 +1,6 @@
 // controllers/product.controllers.js
-const { default: Products } = require('../models/product.model');
+const Products = require('../models/product.model');
+const mongoose = require('mongoose');
 
 //Function to add Product
 const addProduct = async (req, res) => {
@@ -88,9 +89,10 @@ const fetchProduct = async (req, res) => {
 
         // Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json(
-                formatResponse(400, 'Invalid product ID format')
-            );
+            return res.status(400).json({
+                status: 400,
+                message: 'Invalid user ID format',
+            });
         }
 
         //Fetch Product
