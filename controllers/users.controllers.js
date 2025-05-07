@@ -1,4 +1,4 @@
-// controllers/users.controllers.js
+//controllers/users.controllers.js
 const Users = require('../models/user.model');
 const mongoose = require('mongoose');
 
@@ -7,7 +7,7 @@ const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID format
+        //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
@@ -79,7 +79,7 @@ const fetchUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID format
+        //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,

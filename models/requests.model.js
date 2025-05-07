@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const requestedSchema = new mongoose.Schema(
     {
@@ -46,7 +46,7 @@ const issuedSchema = new mongoose.Schema(
 
 const requestSchema = new mongoose.Schema(
     {
-        usersId: {
+        userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
             required: true
@@ -97,4 +97,4 @@ const requestSchema = new mongoose.Schema(
 
 const Requests = mongoose.model("Requests", requestSchema);
 
-export default Requests;
+module.exports = Requests;
