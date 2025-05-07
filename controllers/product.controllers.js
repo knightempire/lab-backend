@@ -157,4 +157,4 @@ const fetchProduct = async (req, res) => {
     }
 }
 
-module.exports = { addProduct, fetchProduct, fetchAllProducts };
+module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts };
