@@ -19,10 +19,13 @@ const addProduct = async (req, res) => {
 
         // Check if product already exists
         console.log('Checking if product already exists');
-        const existingProduct = await Products.findOne({ name });
+        name = name.trim().toLowerCase();
+        const existingProduct = await Products.findOne({
+            name: { $regex: new RegExp('^' + name + '$', 'i') }
+        });
         if (existingProduct) {
-            console.log('product already exists:', name);
-            return res.status(400).json({ message: 'product already exists' });
+            console.log('Product already exists:', name);
+            return res.status(400).json({ message: 'Product already exists' });
         }
 
         // Create a new product instance
@@ -50,6 +53,45 @@ const addProduct = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+//Function to update product
+const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 400,
+                message: 'Invalid product ID format',
+            });
+        }
+
+        const fields = ['quantity', 'damagedQuantity', 'inStock', 'isDisplay'];
+        const updates = {};
+
+        for (let i of fields) {
+            if (req.body[i] !== undefined) {
+                updates[i] = req.body[i];
+            }
+        }
+
+        const updatedProduct = await Products.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+
+        if (!updatedProduct) {
+            return res.status(404).json({ message: `Product with Id: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Product updated successfully',
+            product: updatedProduct,
+        });
+    } catch (err) {
+        console.error('Error in updateProduct:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
 
 //Function to display all products
 const fetchAllProducts = async (req, res) => {
