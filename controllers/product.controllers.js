@@ -133,7 +133,7 @@ const fetchProduct = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
-                message: 'Invalid user ID format',
+                message: 'Invalid product ID format',
             });
         }
 
