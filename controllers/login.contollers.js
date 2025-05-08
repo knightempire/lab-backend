@@ -272,28 +272,27 @@ const registerUser = async (req, res) => {
   
       console.log('email received:', email);
   
-      // Check if the email is provided
+     
       if (!email) {
         console.log('Missing email');
         return res.status(400).json({ message: 'email is required' });
       }
   
-      // Find the user by email
+
       const existingUser = await User.findOne({ email });
       if (!existingUser) {
         console.log('email does not exist');
         return res.status(400).json({ message: 'email does not exist' });
       }
   
-      // Get the user's name
+
       const { name } = existingUser;
   
       console.log('Sending email to:', email, 'with name:', name);
       
-      // Call the sendEmail function and pass the email and name
+
       await sendforgotEmail(email, name);
-  
-      // Respond with a success message
+
       res.status(200).json({
         status: 200,
         message: 'email printed to console and email sent',
@@ -314,7 +313,7 @@ const registerUser = async (req, res) => {
       console.log('Received email:', email);
       console.log('Received password:', password);
   
-      // Check if both email and password are provided
+
       if (!email || !password) {
         console.log('Missing email or password');
         return res.status(400).json({ message: 'Email and password are required' });
@@ -326,13 +325,13 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ message: 'Email does not exist' });
       }
   
-      // Hash the new password before saving it
-      const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+
+      const hashedPassword = await bcrypt.hash(password, 10); 
   
-      // Update the user's password with the hashed version
+
       existingUser.password = hashedPassword;
   
-      // Save the updated user to the database
+
       await existingUser.save();
       console.log('Password updated successfully:', existingUser);
   
