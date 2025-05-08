@@ -76,10 +76,7 @@ const updateRequest = async (req, res) => {
             'requestDate',
             'requestedDays',
             'requestedProducts',
-            'issued',
-            'issuedDate',
-            'isAllReturned',
-            'requestStatus'
+            'isAllReturned'
         ];
 
         const updates = {};
