@@ -149,12 +149,12 @@ const loginUser = async (req, res) => {
       });
     }
   };
-  ;
+
 
 // Function to register and send mail
 const registerUser = async (req, res) => {
   try {
-    const { email, name, phoneNo } = req.body;  
+    const { email, name, phoneNo,isFaculty } = req.body;  
     const type = "user";
     console.log('Email received:', email);
     console.log('Phone number received:', phoneNo);
@@ -172,7 +172,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
     }
 
-    // Check if email already exists
+
     console.log('Checking if email already exists');
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -180,11 +180,11 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Create a new user instance (if necessary)
+  
     console.log('Creating new user instance with email:', email);
-    await sendregisterEmail(email, name, phoneNo, type);  // Include phoneNo in the email sending process
+    await sendregisterEmail(email, name, phoneNo,isFaculty, type),;  
 
-    // Send response back
+
     res.status(200).json({
       status: 200,
       message: 'Email printed to console and email sent',

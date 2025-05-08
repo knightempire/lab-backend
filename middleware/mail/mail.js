@@ -5,11 +5,11 @@ const { registermailtoken, forgotmailtoken } = require('../auth/tokencreation');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY); 
 
-const sendregisterEmail = async (email, name, type) => {
+const sendregisterEmail = async (email, name, phoneNo , isFaculty, type) => {
   try {
     console.log("sendregisterEmail");
 
-    const tokenData = { email, name };
+    const tokenData = { email, name ,phoneNo ,isFaculty };
     const token = await registermailtoken(tokenData, type);
     console.log(token);
 
