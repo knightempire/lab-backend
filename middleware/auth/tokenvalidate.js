@@ -1,6 +1,6 @@
 
 require('dotenv').config();
-const Token = require("../../models/token");
+const Token = require("../../models/token.model");
 const paseto = require('paseto');
 const { V4: { verify } } = paseto;
 const fs = require('fs');

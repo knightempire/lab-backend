@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const bcrypt = require('bcryptjs');
 const User = require('../models/user.model'); 
-const Token = require('../models/token');
+const Token = require('../models/token.model');
 const {createToken} = require('../middleware/auth/tokencreation'); 
 const {sendregisterEmail,sendforgotEmail} = require('../middleware/mail/mail'); 
 const moment = require('moment-timezone'); 
