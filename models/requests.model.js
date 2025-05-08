@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const requestedSchema = new mongoose.Schema(
     {
-        componentName: {
+        productName: {
             type: String,
             required: true
         },
@@ -30,7 +30,7 @@ const returnSchema = new mongoose.Schema(
 
 const issuedSchema = new mongoose.Schema(
     {
-        issuedComponent: {
+        issuedProduct: {
             type: String,
             default: ""
         },
@@ -73,7 +73,7 @@ const requestSchema = new mongoose.Schema(
             required: true
         },
 
-        requestedComponents: [requestedSchema],
+        requestedProducts: [requestedSchema],
 
         issued: [issuedSchema],
 

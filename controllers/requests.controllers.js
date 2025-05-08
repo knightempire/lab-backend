@@ -10,7 +10,7 @@ const addRequest = async (req, res) => {
             description,
             requestDate,
             requestedDays,
-            requestedComponents,
+            requestedProducts,
             issued,
             issuedDate,
             isAllReturned,
@@ -18,7 +18,7 @@ const addRequest = async (req, res) => {
         } = req.body;
 
         //Required fields check
-        const requiredFields = ['userId', 'referenceId', 'description', 'requestedDays', 'requestedComponents'];
+        const requiredFields = ['userId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
         if (missingFields.length > 0) {
@@ -33,7 +33,7 @@ const addRequest = async (req, res) => {
             referenceId,
             description,
             requestedDays,
-            requestedComponents
+            requestedProducts
         };
 
         if (requestDate) requestData.requestDate = requestDate;
@@ -75,7 +75,7 @@ const updateRequest = async (req, res) => {
             'description',
             'requestDate',
             'requestedDays',
-            'requestedComponents',
+            'requestedProducts',
             'issued',
             'issuedDate',
             'isAllReturned',
@@ -166,4 +166,86 @@ const fetchRequest = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests };
+const approveProducts = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        const { issued } = req.body;
+
+        if (!Array.isArray(issued) || issued.length === 0) {
+            return res.status(400).json({ message: 'Issued must be a non-empty array' });
+        }
+
+        const approvedRequest = await Requests.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    issued,
+                    issuedDate: new Date(),
+                    requestStatus: 'approved'
+                }
+            },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email')
+        .populate('referenceId', 'name email');
+
+        if (!approvedRequest) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request approved successfully',
+            request: approvedRequest,
+        });
+    } catch (err) {
+        console.error('Error in approveProducts:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const rejectRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        const updatedRequest = await Requests.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    issued: [],
+                    requestStatus: 'rejected',
+                    issuedDate: new Date()
+                }
+            },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email')
+        .populate('referenceId', 'name email');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request rejected successfully',
+            request: updatedRequest,
+        });
+    } catch (err) {
+        console.error('Error in rejectRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveProducts, rejectRequest };
