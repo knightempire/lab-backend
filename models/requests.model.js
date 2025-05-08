@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const moment = require("moment-timezone");
 
 const requestedSchema = new mongoose.Schema(
     {
@@ -65,7 +66,7 @@ const requestSchema = new mongoose.Schema(
 
         requestDate: {
             type: Date,
-            default: Date.now
+            default: () => moment.tz("Asia/Kolkata").toDate(),
         },
 
         requestedDays: {
