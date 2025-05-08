@@ -1,10 +1,5 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone"); 
-
-
-function formatDate(date) {
-  return moment(date).tz("Asia/Kolkata").format("DD-MM-YYYY"); 
-}
+const moment = require("moment-timezone");
 
 const userSchema = new mongoose.Schema(
   {
@@ -29,7 +24,6 @@ const userSchema = new mongoose.Schema(
     phoneNo: {
       type: String,
       required: true,
-   
     },
 
     password: {
@@ -42,27 +36,19 @@ const userSchema = new mongoose.Schema(
       default: false, 
     },
 
-
     isAdmin: {
       type: Boolean,
       default: false, 
     },
 
-
     isActive: {
       type: Boolean,
       default: true, 
     },
-  },
-  {
-    timestamps: {
-      createdAt: {
-        type: String,
-        default: function () {
-          return formatDate(new Date());
-        },
-      },
-   
+
+    createdAt: {
+      type: Date,
+      default: () => moment.tz("Asia/Kolkata").toDate(),
     },
   }
 );

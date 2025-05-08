@@ -27,7 +27,11 @@ async function tokenValidator(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key); 
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        } 
 
         if (payload && payload.secret_key === secret_key) {
 
@@ -64,7 +68,11 @@ async function adimtokenValidator(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
 
 
         if (payload && payload.secret_key === secret_key) {
@@ -120,7 +128,11 @@ async function readverifyRegisterTokens(req, res, next) {
         }
 
 
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
         console.log("Decoded payload:", payload); 
 
      
@@ -175,7 +187,11 @@ async function readverifyForgotToken(req, res, next) {
         }
 
 
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
         console.log("Decoded payload:", payload);
 
         console.log("Decoded are ", )
@@ -218,8 +234,15 @@ async function verifyRegisterToken(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
+        
 
+
+        
         if (payload && payload.secret_key === mail_secret_key) {
            
             const existingToken = await Token.findOne({ token });
@@ -258,7 +281,11 @@ async function verifyForgotToken(req, res, next) {
 
     try {
   
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
         
 
         if (payload && payload.secret_key === forgot_secret_key) {

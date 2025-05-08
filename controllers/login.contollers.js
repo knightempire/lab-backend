@@ -189,6 +189,7 @@ const registerUser = async (req, res) => {
   // Function to user set the password
   const createuserandPassword = async (req, res) => {
     try {
+      console.log('createuserandPassword function called');
       const { email, password, name, phoneNo } = req.body;
   
       console.log('Received email:', email);
@@ -196,26 +197,25 @@ const registerUser = async (req, res) => {
       console.log('Received name:', name);
       console.log('Received phoneNo:', phoneNo);
   
-    
       if (!email || !password || !name || !phoneNo) {
         console.log('Missing required fields');
         return res.status(400).json({ message: 'Email, password, name, and phone number are required' });
       }
   
-     
-      const emailRegex = /^(cb\.en\.[a-zA-Z0-9]+)@/; 
+      // Regex to match the part before the @ symbol in the email
+      const emailRegex = /^([a-zA-Z0-9._%+-]+)@/;
       const match = email.match(emailRegex);
   
       if (!match) {
-        console.log('Invalid email format for roll number extraction');
+        console.log('Invalid email format for extracting roll number');
         return res.status(400).json({ message: 'Invalid email format' });
       }
   
-      const rollNo = match[1]; 
+      const rollNo = match[1];  // Capture the part before @ as roll number
   
       console.log('Extracted roll number:', rollNo);
   
-
+      // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         console.log('Email already exists:', email);
@@ -223,31 +223,23 @@ const registerUser = async (req, res) => {
       }
   
 
-      const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(phoneNo)) {
-        console.log('Invalid phone number format');
-        return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
-      }
-  
-
+      // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10); 
       console.log('Password hashed successfully');
-
+  
       console.log('Creating new user with email:', email);
       const newUser = new User({
         email,
         password: hashedPassword,
         name,
-        rollNo, 
+        rollNo,  
         phoneNo, 
       });
   
-
       console.log('Saving new user to the database');
       await newUser.save();
       console.log('User saved successfully:', newUser);
   
-
       return res.status(201).json({
         status: 200,
         message: 'User created successfully',
@@ -263,6 +255,7 @@ const registerUser = async (req, res) => {
       return res.status(500).json({ message: 'Server error' });
     }
   };
+  
   
   
   // Function to forgot password and send mail
