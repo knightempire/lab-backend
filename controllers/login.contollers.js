@@ -12,7 +12,7 @@ const user = require('../models/user');
 
 const verifyToken = async (req, res) => {
   try {
-    // Ensure email is provided
+
     const { email, name } = req.body;
     if (!email || !name) {
       return res.status(400).json({
@@ -28,7 +28,7 @@ const verifyToken = async (req, res) => {
       user: {
         email,
         name,
-        rollNo: user.rollNo,
+        rollNo,
       },
     });
   } catch (err) {
@@ -46,63 +46,51 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Log user data for debugging
+
     console.log('User found:', user);
     console.log('User active:', user.isActive);
 
-    // Check if the user is active
+    
     if (!user.isActive) {
       return res.status(400).json({ message: 'User is inactive. Please contact support.' });
     }
 
-    // Check if the password matches
+   
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Get today's date in 'Asia/Kolkata' timezone
-    const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
     
-    // Check if the login date already exists in the loginDates array
-    if (!user.loginDates.includes(today)) {
-      // Add today's date to the loginDates array
-      user.loginDates.push(today);
-      
-      // Save the updated user document
-      await user.save();
-    }
 
-    // Prepare user data to send to the client
+
+
     const userData = {
-      username: user.username,
       email: user.email,
       name: user.name,
       isActive: user.isActive,
-      role: user.role, // Include the role here for front-end routing
+      isFaculty: user.isFaculty, 
+      isAdmin: user.isAdmin,
+      rollNo: user.rollNo,
     };
 
     console.log("User data prepared:", userData);
 
-    // Create a token for the user
+
     const token = await createToken(userData);
 
-    // Clean up sensitive user data before sending it to the client
     delete userData.secret_key;
-    // You might want to delete the `_id` field if not needed
-    // delete userData._id;
 
-    // Send response to the client with user data and token
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: userData,  // Send the user data without secret_key or any sensitive info
+      user: userData,  
     });
   } catch (error) {
     console.error('Error logging in user:', error);
@@ -115,7 +103,7 @@ const loginUser = async (req, res) => {
 
   const verifyMainToken = async (req, res) => {
     try {
-      const { email, username } = req.body;
+      const { email } = req.body;
       console.log('Incoming request body:', req.body);
   
       // Find user by email
@@ -130,8 +118,6 @@ const loginUser = async (req, res) => {
   
   
  
-
-      // Return response with user and profile information
       return res.status(200).json({
         status: 200,
         message: 'Token is valid',

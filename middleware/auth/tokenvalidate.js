@@ -74,7 +74,7 @@ async function adimtokenValidator(req, res, next) {
             req.body.name = payload.name;
             req.body.rollNo = payload.rollNo;
             req.body.isFaculty = payload.isFaculty;
-            req.body.role = payload.isAdmin; 
+            req.body.isAdmin = payload.isAdmin; 
 
 
     
