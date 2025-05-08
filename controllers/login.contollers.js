@@ -7,7 +7,7 @@ const Token = require('../models/token.model');
 const {createToken} = require('../middleware/auth/tokencreation'); 
 const {sendregisterEmail,sendforgotEmail} = require('../middleware/mail/mail'); 
 const moment = require('moment-timezone'); 
-const user = require('../models/user');
+
 
 
 const verifyToken = async (req, res) => {
