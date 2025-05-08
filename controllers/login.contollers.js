@@ -153,92 +153,131 @@ const loginUser = async (req, res) => {
 
 // Function to register and send mail
 const registerUser = async (req, res) => {
-    try {
-      const { email, name } = req.body;
-      const type = "user";
-      console.log('email received:', email);
-  
-      // Check if both fields are provided
-      if (!email || !name) {
-        console.log('Missing email or name');
-        return res.status(400).json({ message: 'email and name are required' });
-      }
-  
-      // Check if email already exists
-      console.log('Checking if email already exists');
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        console.log('email already exists:', email);
-        return res.status(400).json({ message: 'email already exists' });
-      }
-  
+  try {
+    const { email, name, phoneNo } = req.body;  
+    const type = "user";
+    console.log('Email received:', email);
+    console.log('Phone number received:', phoneNo);
 
-      console.log('Creating new user instance with email:', email);
-      await sendregisterEmail(email, name, type);
-  
 
-      res.status(200).json({
-        status: 200,
-        message: 'email printed to console and email sent',
-        email,
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    if (!email || !name || !phoneNo) {
+      console.log('Missing email, name, or phone number');
+      return res.status(400).json({ message: 'Email, name, and phone number are required' });
     }
-  };
+
+
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phoneNo)) {
+      console.log('Invalid phone number format');
+      return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
+    }
+
+    // Check if email already exists
+    console.log('Checking if email already exists');
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.log('Email already exists:', email);
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Create a new user instance (if necessary)
+    console.log('Creating new user instance with email:', email);
+    await sendregisterEmail(email, name, phoneNo, type);  // Include phoneNo in the email sending process
+
+    // Send response back
+    res.status(200).json({
+      status: 200,
+      message: 'Email printed to console and email sent',
+      email,
+      phoneNo,
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
   
   
   
   // Function to user set the password
   const createuserandPassword = async (req, res) => {
     try {
-      const { password, username } = req.body;
-      const { email, name , rollNo } = req.body;
+      const { email, password, name, phoneNo } = req.body;
   
-      console.log('Received email:', email, name);
+      console.log('Received email:', email);
       console.log('Received password:', password);
-      console.log('Received username:', username);
+      console.log('Received name:', name);
+      console.log('Received phoneNo:', phoneNo);
   
-      // Check if both email and password are provided
-      if (!email || !password) {
-        console.log('Missing email or password');
-        return res.status(400).json({ message: 'Email and password are required' });
+    
+      if (!email || !password || !name || !phoneNo) {
+        console.log('Missing required fields');
+        return res.status(400).json({ message: 'Email, password, name, and phone number are required' });
       }
   
-      // Check if user already exists
+     
+      const emailRegex = /^(cb\.en\.[a-zA-Z0-9]+)@/; 
+      const match = email.match(emailRegex);
+  
+      if (!match) {
+        console.log('Invalid email format for roll number extraction');
+        return res.status(400).json({ message: 'Invalid email format' });
+      }
+  
+      const rollNo = match[1]; 
+  
+      console.log('Extracted roll number:', rollNo);
+  
+
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         console.log('Email already exists:', email);
         return res.status(400).json({ message: 'Email already exists' });
       }
   
-      // Hash the password before saving it
-      const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(phoneNo)) {
+        console.log('Invalid phone number format');
+        return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
+      }
   
-      // Create a new user instance
+
+      const hashedPassword = await bcrypt.hash(password, 10); 
+      console.log('Password hashed successfully');
+
       console.log('Creating new user with email:', email);
-      const newUser = new User({ email, password: hashedPassword, name, username });
+      const newUser = new User({
+        email,
+        password: hashedPassword,
+        name,
+        rollNo, 
+        phoneNo, 
+      });
   
-      // Save the user to the database
+
       console.log('Saving new user to the database');
       await newUser.save();
       console.log('User saved successfully:', newUser);
   
-      // Send success response
+
       return res.status(201).json({
         status: 200,
         message: 'User created successfully',
         user: {
           email: newUser.email,
           name: newUser.name,
-        }
+          rollNo: newUser.rollNo,
+        },
       });
+  
     } catch (error) {
-      console.error('Error in createuserandPassword:', error);
+      console.error('Error in setPassword:', error);
       return res.status(500).json({ message: 'Server error' });
     }
   };
+  
   
   // Function to forgot password and send mail
   const forgotPassword = async (req, res) => {
