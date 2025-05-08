@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 //Function to add Product
 const addProduct = async (req, res) => {
     try {
-        const {name, quantity, damagedQuantity, inStock} = req.body;
+        let {name, quantity, damagedQuantity, inStock} = req.body;
         
         const requiredFields = ['name', 'quantity', 'damagedQuantity', 'inStock'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
