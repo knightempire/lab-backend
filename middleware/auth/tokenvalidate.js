@@ -22,16 +22,15 @@ async function tokenValidator(req, res, next) {
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
     if (!token) {
-        console.log("No token provided"); // Debug: Print message if no token is provided
+        console.log("No token provided"); 
         return res.status(401).send({ MESSAGE: 'Missing or invalid token.' });
     }
 
     try {
-        const payload = await verify(token, public_key);  // Verify the token
+        const payload = await verify(token, public_key); 
 
-        // Ensure payload contains required fields
         if (payload && payload.secret_key === secret_key) {
-            // Attach payload data to req.body
+
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
@@ -39,13 +38,12 @@ async function tokenValidator(req, res, next) {
             req.body.isFaculty = payload.isFaculty;
 
 
-            // Log the payload to verify it's correct
             console.log("Token payload:", payload);
             console.log("User details added to request body:"); 
-            return next();  // Proceed to the next middleware or route handler
+            return next();  
 
         } else {
-            console.log("Invalid token payload:", payload); // Debug: Print invalid payload
+            console.log("Invalid token payload:", payload);
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
@@ -137,17 +135,16 @@ async function readverifyRegisterTokens(req, res, next) {
             req.body.phoneNo = payload.phoneNo;
             req.body.isFaculty = payload.isFaculty;
           
-            console.log("User details added to request body:", req.body); // Debug: Print user info being passed along
+            console.log("User details added to request body:", req.body); 
 
-            // Continue to the next middleware or route handler
             next();
         } else {
-            // If the payload is invalid, return an error
+   
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-        // If there's an error (e.g., token verification failure), return an error
-        console.error("Error verifying token:", err.message); // Debug: Print error message
+       
+        console.error("Error verifying token:", err.message); 
 
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
     }
@@ -155,26 +152,24 @@ async function readverifyRegisterTokens(req, res, next) {
 
 
 
-// Token verification for "forgot" token
 
 async function readverifyForgotToken(req, res, next) {
-    // Retrieve the token from the Authorization header
+
     const tokenHeader = req.headers.authorization;
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
-    console.log("Received token:", token); // Debug: Print the received token
+    console.log("Received token:", token); 
 
-    // If there's no token, respond with an error
+
     if (!token) {
         return res.status(401).send({ MESSAGE: 'Missing or invalid token.' });
     }
 
     try {
-        // Check if the token exists in the database
-        const existingToken = await Token.findOne({ token });
-        console.log("Token found in database:", existingToken); // Debug: Print the token from the DB
 
-        // If the token is not found or has already been used, respond with an error
+        const existingToken = await Token.findOne({ token });
+        console.log("Token found in database:", existingToken); 
+
         if (!existingToken) {
             return res.status(401).send({ MESSAGE: 'Token not found in database or has already been used.' });
         }
@@ -192,17 +187,17 @@ async function readverifyForgotToken(req, res, next) {
             req.body.userId = payload.id;
             req.body.name = payload.name;
 
-            console.log("User details added to request body:", req.body); // Debug: Print user info being passed along
+            console.log("User details added to request body:", req.body); 
 
-            // Continue to the next middleware or route handler
+     
             next();
         } else {
-            // If the payload is invalid, return an error
+     
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-        // If there's an error (e.g., token verification failure), return an error
-        console.error("Error verifying token:", err.message); // Debug: Print error message
+      
+        console.error("Error verifying token:", err.message); 
 
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
     }

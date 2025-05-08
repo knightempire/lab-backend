@@ -182,7 +182,7 @@ const registerUser = async (req, res) => {
 
   
     console.log('Creating new user instance with email:', email);
-    await sendregisterEmail(email, name, phoneNo,isFaculty, type),;  
+    await sendregisterEmail(email, name, phoneNo,isFaculty, type);  
 
 
     res.status(200).json({
