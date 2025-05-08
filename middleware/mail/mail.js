@@ -32,7 +32,7 @@ const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,  
       to: email,
-      subject: 'Linkedin - Verify Your Email and Set Your Password',
+      subject: 'Amuda-lab- Verify Your Email and Set Your Password',
       text: `Hello ${name},\n\nWelcome! Click the link below to verify your email and set your password:\n\n${verificationUrl}`,
       html: htmlContent, 
     };
@@ -63,7 +63,7 @@ const sendforgotEmail = async (email, name) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,  
       to: email,  
-      subject: 'Linkedin - Reset Your Password',
+      subject: 'Amuda-lab- Reset Your Password',
       text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${verificationUrl}`,
       html: htmlContent,  
     };
