@@ -173,7 +173,7 @@ const registerUser = async (req, res) => {
 
     res.status(200).json({
       status: 200,
-      message: 'Email printed to console and email sent',
+      message: 'Successfully email sent to user',
       email,
       phoneNo,
     });
@@ -288,7 +288,7 @@ const registerUser = async (req, res) => {
 
       res.status(200).json({
         status: 200,
-        message: 'email printed to console and email sent',
+        message: 'Successfully email sent to user',
         email,
       });
     } catch (error) {

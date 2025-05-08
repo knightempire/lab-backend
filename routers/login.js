@@ -6,7 +6,7 @@ const {tokenValidator,verifyRegisterToken,verifyForgotToken,readverifyRegisterTo
 
 
 login.post('/login', loginUser);
-login.post('/verify-token', tokenValidator, verifyMainToken);
+login.get('/verify-token', tokenValidator, verifyMainToken);
 
 
 login.get('/verify-token-forgot',  readverifyForgotToken, verifyToken);
