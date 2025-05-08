@@ -35,12 +35,13 @@ async function tokenValidator(req, res, next) {
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
-            req.body.username = payload.username;
-            req.body.role = payload.role;
+            req.body.rollNo = payload.rollNo;
+            req.body.isFaculty = payload.isFaculty;
+
 
             // Log the payload to verify it's correct
             console.log("Token payload:", payload);
-            console.log("User details added to request body:"); // Debug: Print user info being passed along
+            console.log("User details added to request body:"); 
             return next();  // Proceed to the next middleware or route handler
 
         } else {
@@ -60,37 +61,38 @@ async function adimtokenValidator(req, res, next) {
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
     if (!token) {
-        console.log("No token provided"); // Debug: Print message if no token is provided
+        console.log("No token provided"); 
         return res.status(401).send({ MESSAGE: 'Missing or invalid token.' });
     }
 
     try {
-        const payload = await verify(token, public_key);  // Verify the token
+        const payload = await verify(token, public_key);
 
-        // Ensure payload contains required fields
+
         if (payload && payload.secret_key === secret_key) {
-            // Attach payload data to req.body
+
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
-            req.body.username = payload.username;
-            req.body.role = payload.role;
+            req.body.rollNo = payload.rollNo;
+            req.body.isFaculty = payload.isFaculty;
+            req.body.role = payload.isAdmin; 
 
-            // Log the payload to verify it's correct
+
+    
             console.log("Token payload:", payload);
-            console.log("User details added to request body:"); // Debug: Print user info being passed along
-            console.log("User role:", payload.role); // Debug: Print user role
-            if(payload.role !== "admin") {
-                return res.status(401).send({ MESSAGE: 'You are not authorized to access this resource.' });
+            console.log("User details added to request body:");
+            console.log("User isAdmin:", payload.isAdmin); 
+            if (!payload.isAdmin) {
+                return res.status(401).send({ message: 'You are not authorized to access this resource.' });
             }
-            return next();  // Proceed to the next middleware or route handler
 
         } else {
-            console.log("Invalid token payload:", payload); // Debug: Print invalid payload
+            console.log("Invalid token payload:", payload); 
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-        console.error("Token verification error:", err.message); // Debug: Print error message
+        console.error("Token verification error:", err.message);
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
     }
 }
