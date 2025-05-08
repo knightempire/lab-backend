@@ -1,4 +1,4 @@
-// controllers/product.controllers.js
+//controllers/product.controllers.js
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 
@@ -17,7 +17,7 @@ const addProduct = async (req, res) => {
             });
         }
 
-        // Check if product already exists
+        //Check if product already exists
         console.log('Checking if product already exists');
         name = name.trim().toLowerCase();
         const existingProduct = await Products.findOne({
@@ -28,16 +28,16 @@ const addProduct = async (req, res) => {
             return res.status(400).json({ message: 'Product already exists' });
         }
 
-        // Create a new product instance
+        //Create a new product instance
         console.log('Creating new product with name:', name);
         const newProduct = new Products({name, quantity, damagedQuantity, inStock});
 
-        // Save the product to the database
+        //Save the product to the database
         console.log('Saving new product to the database');
         await newProduct.save();
         console.log('Product saved successfully:', newProduct);
     
-        // Send success response
+        //Send success response
         return res.status(201).json({
             status: 201,
             message: 'Product created successfully',
@@ -59,7 +59,7 @@ const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID format
+        //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
@@ -99,17 +99,25 @@ const fetchAllProducts = async (req, res) => {
         //Fetch all Products
         const products = await Products.find();
 
-        let text = 'Products fetched successfully';
-
         //No Product to display
-        if (products.length === 0) {
-            text = 'No product to Display';
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: 'No product to Display',
+                components: products.map(product => ({
+                    id: product._id,
+                    name: product.name,
+                    quantity: product.quantity,
+                    damagedQuantity: product.damagedQuantity,
+                    inStock: product.inStock
+                })),
+            });
         }
 
         //Send the products details
         return res.status(200).json({
             status: 200,
-            message: text,
+            message: 'Products fetched successfully',
             components: products.map(product => ({
                 id: product._id,
                 name: product.name,
@@ -129,7 +137,7 @@ const fetchProduct = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID format
+        //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
