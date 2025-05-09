@@ -1,6 +1,7 @@
 //controllers/product.controllers.js
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
+const XLSX = require('xlsx');
 
 //Function to add Product
 const addProduct = async (req, res) => {
@@ -53,6 +54,62 @@ const addProduct = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+//Function to add Products in bulk
+const bulkAddProducts = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        const requiredFields = ['name', 'quantity', 'damagedQuantity', 'inStock'];
+        const missingColumns = requiredFields.filter(field => !Object.keys(rows[0] || {}).includes(field));
+        if (missingColumns.length > 0) {
+            return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
+        }
+
+        const fields = Object.keys(rows[0] || {});
+
+        for (let i = 0; i < requiredFields.length; i++) {
+            if (fields[i] !== requiredFields[i]) {
+                return res.status(400).json({ message: `Invalid column order. Expected order: ${requiredFields.join(', ')}` });
+            }
+        }
+
+        const created = [], updated = [];
+
+        for (const row of rows) {
+            const { name, quantity, damagedQuantity, inStock } = row;
+
+            const existing = await Products.findOne({ name: { $regex: new RegExp('^' + name + '$', 'i') } });
+
+            if (existing) {
+                existing.quantity = quantity;
+                existing.damagedQuantity = damagedQuantity;
+                existing.inStock = inStock;
+                await existing.save();
+                updated.push(name);
+            } else {
+                const newProduct = await Products.create({ name, quantity, damagedQuantity, inStock });
+                created.push(newProduct.name);
+            }
+        }
+
+        return res.status(200).json({
+            message: "Bulk added Successfully",
+            created,
+            updated
+        });
+    } catch (err) {
+        console.error("Error in bulkAddProducts:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
 
 //Function to update product
 const updateProduct = async (req, res) => {
@@ -165,4 +222,4 @@ const fetchProduct = async (req, res) => {
     }
 }
 
-module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts };
+module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts, bulkAddProducts };

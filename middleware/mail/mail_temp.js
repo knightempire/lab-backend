@@ -192,8 +192,8 @@ const TEMPLATE_WELCOME_MAIL = (name, verificationUrl) => {
             <p class="expiration-text">This verification link will expire in the next 5 minutes. Please do not share this link with anyone for security reasons. It's important to keep your link confidential to prevent unauthorized access to your account.</p>
     
             <p class="regards-text">
-                Regards, <br>
-                Amuda-lab<br>
+                Best Regards, <br>
+                The Amuda-lab Team<br>
               
             </p>
         </main>
@@ -238,8 +238,8 @@ const TEMPLATE_RESET_MAIL = (name, verificationUrl) => {
             <p class="expiration-text">This verification link will expire in the next 5 minutes. Please do not share this link with anyone for security reasons. It's important to keep your link confidential to prevent unauthorized access to your account.</p>
     
             <p class="regards-text">
-                Regards, <br>
-                Amuda-lab
+                Best Regards, <br>
+                The Amuda-lab Team
           
             </p>
         </main>
@@ -285,8 +285,8 @@ const TEMPLATE_RESET_MAIL = (name, verificationUrl) => {
             <p class="expiration-text">This verification link will expire in the next 5 minutes. Please do not share this link with anyone for security reasons. It's important to keep your link confidential to prevent unauthorized access to your account.</p>
     
             <p class="regards-text">
-                Regards, <br>
-                Amuda-lab
+                Best Regards, <br>
+                The Amuda-lab Team
           
             </p>
         </main>
