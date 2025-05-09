@@ -1,8 +1,9 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+const moment = require("moment-timezone");
 
 const requestedSchema = new mongoose.Schema(
     {
-        componentName: {
+        productName: {
             type: String,
             required: true
         },
@@ -30,7 +31,7 @@ const returnSchema = new mongoose.Schema(
 
 const issuedSchema = new mongoose.Schema(
     {
-        issuedComponent: {
+        issuedProduct: {
             type: String,
             default: ""
         },
@@ -46,7 +47,7 @@ const issuedSchema = new mongoose.Schema(
 
 const requestSchema = new mongoose.Schema(
     {
-        usersId: {
+        userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
             required: true
@@ -65,7 +66,7 @@ const requestSchema = new mongoose.Schema(
 
         requestDate: {
             type: Date,
-            default: Date.now
+            default: () => moment.tz("Asia/Kolkata").toDate(),
         },
 
         requestedDays: {
@@ -73,7 +74,7 @@ const requestSchema = new mongoose.Schema(
             required: true
         },
 
-        requestedComponents: [requestedSchema],
+        requestedProducts: [requestedSchema],
 
         issued: [issuedSchema],
 
@@ -97,4 +98,4 @@ const requestSchema = new mongoose.Schema(
 
 const Requests = mongoose.model("Requests", requestSchema);
 
-export default Requests;
+module.exports = Requests;

@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 
 .env
+
+
+**/mailer.js
+**/mailer1.js
+**/private_key.pem
+**/public_key.pem
+
+
