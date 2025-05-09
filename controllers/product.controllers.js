@@ -56,7 +56,7 @@ const addProduct = async (req, res) => {
 };
 
 //Function to add Products in bulk
-const bulkUpload = async (req, res) => {
+const bulkAddProducts = async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
@@ -66,10 +66,18 @@ const bulkUpload = async (req, res) => {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
 
-        const requiredFields = ['id', 'name', 'quantity', 'damagedQuantity', 'inStock'];
+        const requiredFields = ['name', 'quantity', 'damagedQuantity', 'inStock'];
         const missingColumns = requiredFields.filter(field => !Object.keys(rows[0] || {}).includes(field));
         if (missingColumns.length > 0) {
             return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
+        }
+
+        const fields = Object.keys(rows[0] || {});
+
+        for (let i = 0; i < requiredFields.length; i++) {
+            if (fields[i] !== requiredFields[i]) {
+                return res.status(400).json({ message: `Invalid column order. Expected order: ${requiredFields.join(', ')}` });
+            }
         }
 
         const created = [], updated = [];
@@ -77,31 +85,31 @@ const bulkUpload = async (req, res) => {
         for (const row of rows) {
             const { name, quantity, damagedQuantity, inStock } = row;
 
-            const existing = await Products.findOne({ name: { $regex: new RegExp('^' + normalized + '$', 'i') } });
+            const existing = await Products.findOne({ name: { $regex: new RegExp('^' + name + '$', 'i') } });
 
             if (existing) {
-                existing.name = name;
                 existing.quantity = quantity;
                 existing.damagedQuantity = damagedQuantity;
                 existing.inStock = inStock;
                 await existing.save();
-                updated.push(id);
+                updated.push(name);
             } else {
-                await Products.create({ _id: id, name, quantity, damagedQuantity, inStock });
-                created.push(id);
+                const newProduct = await Products.create({ name, quantity, damagedQuantity, inStock });
+                created.push(newProduct.name);
             }
         }
 
         return res.status(200).json({
-            message: "Bulk upload processed",
+            message: "Bulk added Successfully",
             created,
             updated
         });
     } catch (err) {
-        console.error("Error in bulkUpload:", err);
+        console.error("Error in bulkAddProducts:", err);
         return res.status(500).json({ message: "Server error" });
     }
 };
+
 
 //Function to update product
 const updateProduct = async (req, res) => {
@@ -214,4 +222,4 @@ const fetchProduct = async (req, res) => {
     }
 }
 
-module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts };
+module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts, bulkAddProducts };
