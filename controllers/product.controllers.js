@@ -1,6 +1,7 @@
 //controllers/product.controllers.js
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
+const XLSX = require('xlsx');
 
 //Function to add Product
 const addProduct = async (req, res) => {
@@ -51,6 +52,54 @@ const addProduct = async (req, res) => {
     } catch (err) {
         console.error('Error in addProduct:', err);
         return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+//Function to add Products in bulk
+const bulkUpload = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        const requiredFields = ['id', 'name', 'quantity', 'damagedQuantity', 'inStock'];
+        const missingColumns = requiredFields.filter(field => !Object.keys(rows[0] || {}).includes(field));
+        if (missingColumns.length > 0) {
+            return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
+        }
+
+        const created = [], updated = [];
+
+        for (const row of rows) {
+            const { name, quantity, damagedQuantity, inStock } = row;
+
+            const existing = await Products.findOne({ name: { $regex: new RegExp('^' + normalized + '$', 'i') } });
+
+            if (existing) {
+                existing.name = name;
+                existing.quantity = quantity;
+                existing.damagedQuantity = damagedQuantity;
+                existing.inStock = inStock;
+                await existing.save();
+                updated.push(id);
+            } else {
+                await Products.create({ _id: id, name, quantity, damagedQuantity, inStock });
+                created.push(id);
+            }
+        }
+
+        return res.status(200).json({
+            message: "Bulk upload processed",
+            created,
+            updated
+        });
+    } catch (err) {
+        console.error("Error in bulkUpload:", err);
+        return res.status(500).json({ message: "Server error" });
     }
 };
 

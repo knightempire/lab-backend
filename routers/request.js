@@ -1,6 +1,6 @@
 const express = require('express');
 const request = express.Router(); 
-const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveProducts, rejectRequest } = require('../controllers/requests.controllers');
+const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest } = require('../controllers/requests.controllers');
 
 request.post('/add', addRequest);
 request.put('/update/:id', updateRequest);

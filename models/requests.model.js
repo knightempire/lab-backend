@@ -82,6 +82,11 @@ const requestSchema = new mongoose.Schema(
             default: null
         },
 
+        issuedDescription: {
+            type: String,
+            default: null
+        },
+
         isAllReturned: {
             type: Boolean,
             default: false
