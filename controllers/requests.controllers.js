@@ -29,7 +29,7 @@ const addRequest = async (req, res) => {
 
         //Prepare requestData with required fields
         const requestData = {
-            usersId: userId,
+            userId: userId,
             referenceId,
             description,
             requestedDays,
@@ -163,7 +163,7 @@ const fetchRequest = async (req, res) => {
     }
 };
 
-const approveProducts = async (req, res) => {
+const approveRequest = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -172,25 +172,38 @@ const approveProducts = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const { issued } = req.body;
+        const { issued, issuedDate, issuedDescription } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
         }
 
+        for (const item of issued) {
+            if (!item.issuedProduct || typeof item.issuedQuantity !== 'number') {
+                return res.status(400).json({
+                    message: 'Each issued item must contain "issuedProduct" and a numeric "issuedQuantity"'
+                });
+            }
+        }
+
+        const updateData = {
+            issued,
+            issuedDate: issuedDate ? new Date(issuedDate) : new Date(),
+            requestStatus: 'approved'
+        };
+
+        if (issuedDescription) {
+            updateData.issuedDescription = issuedDescription;
+        }
+
         const approvedRequest = await Requests.findByIdAndUpdate(
             id,
-            {
-                $set: {
-                    issued,
-                    issuedDate: new Date(),
-                    requestStatus: 'approved'
-                }
-            },
+            { $set: updateData },
             { new: true, runValidators: true }
         )
         .populate('userId', 'name email')
         .populate('referenceId', 'name email');
+
 
         if (!approvedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
@@ -216,15 +229,21 @@ const rejectRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
+        const { issuedDate, issuedDescription } = req.body;
+
+        const updateData = {
+            issued: [],
+            issuedDate: issuedDate ? new Date(issuedDate) : new Date(),
+            requestStatus: 'rejected'
+        };
+
+        if (issuedDescription) {
+            updateData.issuedDescription = issuedDescription;
+        }
+
         const updatedRequest = await Requests.findByIdAndUpdate(
             id,
-            {
-                $set: {
-                    issued: [],
-                    requestStatus: 'rejected',
-                    issuedDate: new Date()
-                }
-            },
+            { $set: updateData },
             { new: true, runValidators: true }
         )
         .populate('userId', 'name email')
@@ -245,4 +264,4 @@ const rejectRequest = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveProducts, rejectRequest };
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest };
