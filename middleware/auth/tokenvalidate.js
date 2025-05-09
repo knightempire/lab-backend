@@ -57,7 +57,7 @@ async function tokenValidator(req, res, next) {
 }
 
 // Token verification for "create" token
-async function adimtokenValidator(req, res, next) {
+async function admintokenValidator(req, res, next) {
     console.log("admintokenValidator")
     const tokenHeader = req.headers.authorization;
     const token = tokenHeader && tokenHeader.split(' ')[1];
@@ -326,5 +326,5 @@ module.exports = {
     verifyForgotToken,
     readverifyForgotToken,
     readverifyRegisterTokens,
-    adimtokenValidator
+    admintokenValidator
 };
