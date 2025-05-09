@@ -152,12 +152,6 @@ const registerUser = async (req, res) => {
     }
 
 
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(phoneNo)) {
-      console.log('Invalid phone number format');
-      return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
-    }
-
 
     console.log('Checking if email already exists');
     const existingUser = await User.findOne({ email });
@@ -190,12 +184,13 @@ const registerUser = async (req, res) => {
   const createuserandPassword = async (req, res) => {
     try {
       console.log('createuserandPassword function called');
-      const { email, password, name, phoneNo } = req.body;
+      const { email, password, name, phoneNo ,isFaculty} = req.body;
   
       console.log('Received email:', email);
       console.log('Received password:', password);
       console.log('Received name:', name);
       console.log('Received phoneNo:', phoneNo);
+      console.log('Received isFaculty:', isFaculty);
   
       if (!email || !password || !name || !phoneNo) {
         console.log('Missing required fields');
@@ -234,6 +229,7 @@ const registerUser = async (req, res) => {
         name,
         rollNo,  
         phoneNo, 
+        isFaculty,
       });
   
       console.log('Saving new user to the database');
