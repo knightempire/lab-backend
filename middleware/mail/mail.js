@@ -32,7 +32,7 @@ const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,  
       to: email,
-      subject: 'Amuda-lab- Verify Your Email and Set Your Password',
+      subject: 'Amudalab Equipment Management – Verify Your Account',
       text: `Hello ${name},\n\nWelcome! Click the link below to verify your email and set your password:\n\n${verificationUrl}`,
       html: htmlContent, 
     };
