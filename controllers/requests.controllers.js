@@ -87,7 +87,7 @@ const updateRequest = async (req, res) => {
         }
 
         const updatedRequest = await Requests.findByIdAndUpdate(id, updates, { new: true, runValidators: true })
-            .populate('usersId', 'name email')
+            .populate('userId', 'name email')
             .populate('referenceId', 'name email');
 
         if (!updatedRequest) {
@@ -110,7 +110,7 @@ const fetchAllRequests = async (req, res) => {
 
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('usersId', 'name email')
+            .populate('userId', 'name email')
             .populate('referenceId', 'name email');
 
         //No Request to display
@@ -144,7 +144,7 @@ const fetchRequest = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const request = await Requests.findById(id)
-            .populate('usersId', 'name email')
+            .populate('userId', 'name email')
             .populate('referenceId', 'name email');
 
         if (!request) {
@@ -202,7 +202,7 @@ const approveProducts = async (req, res) => {
             request: approvedRequest,
         });
     } catch (err) {
-        console.error('Error in approveProducts:', err);
+        console.error('Error in :', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
