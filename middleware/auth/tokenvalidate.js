@@ -6,14 +6,25 @@ const { V4: { verify } } = paseto;
 const fs = require('fs');
 const path = require('path');
 
-// Load the public key from the file
-const public_key_path = path.resolve(__dirname, '../rsa/public_key.pem');
-const public_key = fs.readFileSync(public_key_path);
 
 // Environment variables for secret keys
 const secret_key = process.env.SECRET_KEY;
 const mail_secret_key = process.env.MAIL_SECRET_KEY;
 const forgot_secret_key = process.env.FORGOT_SECRET_KEY;
+
+// Load the public key from the file
+const public_key_path = path.resolve(__dirname, '../rsa/public_key.pem');
+
+function getPublicKey() {
+    try {
+        return fs.readFileSync(public_key_path, 'utf8');
+    } catch (err) {
+        console.warn(`⚠️ Public key not found or unreadable at ${public_key_path}. Using fallback value "123".`);
+        return '123';
+    }
+}
+
+
 
 // Token verification for "create" token
 async function tokenValidator(req, res, next) {
@@ -27,6 +38,7 @@ async function tokenValidator(req, res, next) {
     }
 
     try {
+            const public_key = getPublicKey();
               const payload = await verify(token, public_key);
         
         if (!req.body) {
@@ -68,6 +80,7 @@ async function admintokenValidator(req, res, next) {
     }
 
     try {
+            const public_key = getPublicKey();
               const payload = await verify(token, public_key);
         
         if (!req.body) {
