@@ -16,7 +16,7 @@ const private_key_path = path.resolve(__dirname, '../rsa/private_key.pem');
 
 function getPrivateKey() {
     try {
-        return fs.readFileSync(private_key_path, 'utf8');
+        return fs.readFileSync(private_key_path);
     } catch (err) {
         console.warn(`⚠️ Private key not found or unreadable at ${private_key_path}. Using fallback value "123".`);
         return '123';

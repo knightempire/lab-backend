@@ -17,7 +17,7 @@ const public_key_path = path.resolve(__dirname, '../rsa/public_key.pem');
 
 function getPublicKey() {
     try {
-        return fs.readFileSync(public_key_path, 'utf8');
+        return fs.readFileSync(public_key_path);
     } catch (err) {
         console.warn(`⚠️ Public key not found or unreadable at ${public_key_path}. Using fallback value "123".`);
         return '123';
