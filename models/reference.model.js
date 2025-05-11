@@ -22,6 +22,6 @@ const referenceSchema = new mongoose.Schema(
   }
 );
 
-const references = mongoose.model("references", referenceSchema);
+const References = mongoose.model("References", referenceSchema);
 
-module.exports = references;
+module.exports = References;
