@@ -23,8 +23,8 @@ const returnSchema = new mongoose.Schema(
         },
 
         returnDate: {
-            type: Date,
-            default: null
+            type: [Date],
+            default: []
         }
     }
 );
@@ -65,8 +65,8 @@ const requestSchema = new mongoose.Schema(
         },
 
         requestDate: {
-            type: Date,
-            default: () => moment.tz("Asia/Kolkata").toDate(),
+            type: [Date],
+            default: () => [moment.tz("Asia/Kolkata").toDate()],
         },
 
         requestedDays: {
@@ -79,11 +79,11 @@ const requestSchema = new mongoose.Schema(
         issued: [issuedSchema],
 
         issuedDate: {
-            type: Date,
-            default: null
+            type: [Date],
+            default: []
         },
 
-        issuedDescription: {
+        adminReturnMessage: {
             type: String,
             default: null
         },
