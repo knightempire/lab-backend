@@ -161,13 +161,7 @@ const fetchAllProducts = async (req, res) => {
             return res.status(404).json({
                 status: 404,
                 message: 'No product to Display',
-                components: products.map(product => ({
-                    id: product._id,
-                    name: product.name,
-                    quantity: product.quantity,
-                    damagedQuantity: product.damagedQuantity,
-                    inStock: product.inStock
-                })),
+                products: {},
             });
         }
 
@@ -175,7 +169,7 @@ const fetchAllProducts = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: 'Products fetched successfully',
-            components: products.map(product => ({
+            products: products.map(product => ({
                 id: product._id,
                 name: product.name,
                 quantity: product.quantity,
