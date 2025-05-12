@@ -10,9 +10,18 @@ const mail_secret_key = process.env.MAIL_SECRET_KEY;
 const forgot_secret_key = process.env.FORGOT_SECRET_KEY;
 const expiresIn = process.env.EXPIRES_IN;  
 const mailexpiresIn = process.env.MAIL_EXPIRES_IN;  
-const private_key_path = path.resolve(__dirname, '../rsa/private_key.pem');
-const private_key = fs.readFileSync(private_key_path);
 
+
+const private_key_path = path.resolve(__dirname, '../rsa/private_key.pem');
+
+function getPrivateKey() {
+    try {
+        return fs.readFileSync(private_key_path);
+    } catch (err) {
+        console.warn(`⚠️ Private key not found or unreadable at ${private_key_path}. Using fallback value "123".`);
+        return '123';
+    }
+}
 
 async function createToken(data) {
     if (!secret_key) {
@@ -20,7 +29,7 @@ async function createToken(data) {
     }
 
     data.secret_key = secret_key;
-
+ const private_key = getPrivateKey();
 
     let token = await sign(data, private_key, { expiresIn: expiresIn });  
 
