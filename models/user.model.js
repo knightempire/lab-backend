@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
+const References = require("./reference.model");
 
 const userSchema = new mongoose.Schema(
   {
@@ -52,6 +53,28 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
+
+userSchema.pre("save", async function (next) {
+  try {
+    if (this.isFaculty) {
+      const updateResult = await References.updateOne(
+        { email: this.email },
+        { $setOnInsert: { name: this.name, email: this.email } },
+        { upsert: true }
+      );
+
+      if (updateResult.upserted) {
+        console.log(`Reference created for ${this.email}`);
+      } else {
+        console.log(`Reference already exists for ${this.email}`);
+      }
+    }
+    next();
+  } catch (err) {
+    console.error("Error in user pre-save hook:", err);
+    next(err);
+  }
+});
 
 const Users = mongoose.model("Users", userSchema);
 

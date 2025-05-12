@@ -293,7 +293,7 @@ const rejectRequest = async (req, res) => {
 
 const fetchUserRequests = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { id: userId } = req.params;
 
         //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -334,7 +334,7 @@ const fetchUserRequests = async (req, res) => {
 
 const fetchRefRequests = async (req, res) => {
     try {
-        const { refId } = req.params;
+        const { id: refId } = req.params;
 
         //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(refId)) {
