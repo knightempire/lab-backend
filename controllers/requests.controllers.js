@@ -30,7 +30,7 @@ const addRequest = async (req, res) => {
 
         //Prepare requestData with required fields
         const requestData = {
-            userId: userId,
+            userId,
             referenceId,
             description,
             requestedDays,
@@ -111,7 +111,6 @@ const updateRequest = async (req, res) => {
 
 const fetchAllRequests = async (req, res) => {
     try {
-
         //Fetch all requests and populate user references
         const requests = await Requests.find()
             .populate('userId', 'name email rollno')

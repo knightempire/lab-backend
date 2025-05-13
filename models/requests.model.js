@@ -55,7 +55,7 @@ const requestSchema = new mongoose.Schema(
 
         referenceId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Users",
+            ref: "References",
             required: true
         },
 
@@ -72,6 +72,11 @@ const requestSchema = new mongoose.Schema(
         requestedDays: {
             type: Number,
             required: true
+        },
+
+        adminApprovedDays: {
+            type: Number,
+            default: null
         },
 
         requestedProducts: [requestedSchema],

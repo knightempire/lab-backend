@@ -5,31 +5,31 @@ const mongoose = require('mongoose');
 //Function to add reference
 const addReference = async (req, res) => {
     try {
-        let { name, email } = req.body;
+        let { refName, refEmail } = req.body;
 
         //Ensure all Fields are provided
-        if (!name) {
+        if (!refName) {
             return res.status(400).json({ message: 'Name is an required field'});
-        }if (!email) {
+        }if (!refEmail) {
             return res.status(400).json({ message: 'Email is an required field'});
         }
 
         const emailRegex = /^\S+@\S+\.\S+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(refEmail)) {
             return res.status(400).json({ message: 'Invalid email format'});
         }
 
         //Check if reference already exists
         console.log('Checking if reference already exists');
-        const existingReference = await Reference.findOne({ email });
+        const existingReference = await Reference.findOne({ email: refEmail });
         if (existingReference) {
-            console.log('Reference already exists:', name);
+            console.log('Reference already exists:', refName);
             return res.status(400).json({ message: 'Reference already exists' });
         }
 
         //Create a new reference instance
-        console.log('Creating new reference with name:', name);
-        const newReference = new Reference({name, email});
+        console.log('Creating new reference with name:', refName);
+        const newReference = new Reference({name: refName, email: refEmail});
 
         //Save the reference to the database
         console.log('Saving new reference to the database');
@@ -63,13 +63,13 @@ const updateReference = async (req, res) => {
             });
         }
 
-        const fields = ['name', 'email'];
         const updates = {};
 
-        for (let i of fields) {
-            if (req.body[i] !== undefined) {
-                updates[i] = req.body[i];
-            }
+        if (req.body['refName'] !== undefined) {
+            updates['name'] = req.body['refName'];
+        }
+        if (req.body['refEmail'] !== undefined) {
+            updates['email'] = req.body['refEmail'];
         }
 
         if (updates.email) {
