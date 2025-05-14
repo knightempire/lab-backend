@@ -6,6 +6,8 @@ const { ed25519KeygenMiddleware } = require("./middleware/rsa/key.js");
 const productRoutes = require('./routers/product');
 const userRoutes = require('./routers/user');
 const requestRoutes = require('./routers/request');
+const referenceRoutes = require('./routers/reference');
+const damagedRoutes = require('./routers/damaged');
 const loginRoutes = require('./routers/login');
 
 dotenv.config();
@@ -33,6 +35,8 @@ app.use(express.json());
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/request', requestRoutes);
+app.use('/api/reference', referenceRoutes);
+app.use('/api/damaged', damagedRoutes);
 app.use('/api/', loginRoutes);
 
 connectToDb().then(() => {

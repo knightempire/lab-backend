@@ -23,8 +23,8 @@ const returnSchema = new mongoose.Schema(
         },
 
         returnDate: {
-            type: Date,
-            default: null
+            type: [Date],
+            default: []
         }
     }
 );
@@ -55,7 +55,7 @@ const requestSchema = new mongoose.Schema(
 
         referenceId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Users",
+            ref: "References",
             required: true
         },
 
@@ -65,8 +65,8 @@ const requestSchema = new mongoose.Schema(
         },
 
         requestDate: {
-            type: Date,
-            default: () => moment.tz("Asia/Kolkata").toDate(),
+            type: [Date],
+            default: () => [moment.tz("Asia/Kolkata").toDate()],
         },
 
         requestedDays: {
@@ -74,16 +74,21 @@ const requestSchema = new mongoose.Schema(
             required: true
         },
 
+        adminApprovedDays: {
+            type: Number,
+            default: null
+        },
+
         requestedProducts: [requestedSchema],
 
         issued: [issuedSchema],
 
         issuedDate: {
-            type: Date,
-            default: null
+            type: [Date],
+            default: []
         },
 
-        issuedDescription: {
+        adminReturnMessage: {
             type: String,
             default: null
         },
