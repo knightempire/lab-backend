@@ -1,11 +1,12 @@
 //controllers/requests.controllers.js
 const Requests = require('../models/requests.model');
 const mongoose = require('mongoose');
+const moment = require("moment-timezone");
 
 const addRequest = async (req, res) => {
     try {
         let {
-            userId,
+            requestUserId,
             referenceId,
             description,
             requestDate,
@@ -19,8 +20,9 @@ const addRequest = async (req, res) => {
         } = req.body;
 
         //Required fields check
-        const requiredFields = ['userId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
+        const requiredFields = ['requestUserId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
+        console.log(req.body);
 
         if (missingFields.length > 0) {
             return res.status(400).json({
@@ -30,16 +32,16 @@ const addRequest = async (req, res) => {
 
         //Prepare requestData with required fields
         const requestData = {
-            userId,
+            userId: requestUserId,
             referenceId,
             description,
             requestedDays,
             requestedProducts
         };
 
-        if (requestDate) requestData.requestDate = [requestDate];
+        if (requestDate) requestData.requestDate = requestDate;
         if (issued) requestData.issued = issued;
-        if (issuedDate) requestData.issuedDate = [issuedDate];
+        if (issuedDate) requestData.issuedDate = issuedDate;
         if (adminReturnMessage) requestData.adminReturnMessage = adminReturnMessage;
         if (isAllReturned !== undefined) requestData.isAllReturned = isAllReturned;
         if (requestStatus) requestData.requestStatus = requestStatus;
@@ -76,8 +78,7 @@ const updateRequest = async (req, res) => {
         const fields = [
             'description',
             'requestedDays',
-            'requestedProducts',
-            'isAllReturned'
+            'requestedProducts'
         ];
 
         const updates = {};
@@ -88,11 +89,10 @@ const updateRequest = async (req, res) => {
         }
 
         const updatedRequest = await Requests.findByIdAndUpdate(id, {
-                $set: updates,
-                $push: { requestDate: req.body['requestDate'] }
+                $set: updates
             }, { new: true, runValidators: true })
-            .populate('userId', 'name email rollno')
-            .populate('referenceId', 'name email rollno');
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
 
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
@@ -113,8 +113,8 @@ const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('userId', 'name email rollno')
-            .populate('referenceId', 'name email rollno');
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
 
         //No Request to display
         if (!requests || requests.length === 0) {
@@ -124,22 +124,11 @@ const fetchAllRequests = async (req, res) => {
             });
         }
 
-        const formattedRequests = requests.map(req => {
-            const latestRequestDate = req.requestDate?.[req.requestDate.length - 1] || null;
-            const latestIssuedDate = req.issuedDate?.[req.issuedDate.length - 1] || null;
-
-            return {
-                ...req._doc,
-                requestDate: latestRequestDate,
-                issuedDate: latestIssuedDate
-            };
-        });
-
         //Send the request details
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
-            requests: formattedRequests
+            requests: requests
         });
     } catch (err) {
         console.error('Error in fetchAllRequest:', err);
@@ -158,26 +147,18 @@ const fetchRequest = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const request = await Requests.findById(id)
-            .populate('userId', 'name email rollno')
-            .populate('referenceId', 'name email rollno');
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        const latestRequestDate = request.requestDate?.[request.requestDate.length - 1] || null;
-        const latestIssuedDate = req.issuedDate?.[req.issuedDate.length - 1] || null;
-        const formattedRequest = {
-            ...request._doc,
-            requestDate: latestRequestDate,
-            issuedDate: latestIssuedDate
-        };
-
         //Send request details
         return res.status(200).json({
             status: 200,
             message: 'Request fetched successfully',
-            request: formattedRequest
+            request: request
         });
     } catch (err) {
         console.error('Error in fetchRequest:', err);
@@ -194,7 +175,7 @@ const approveRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const { issued, issuedDate, issuedDescription } = req.body;
+        const { issued, adminReturnMessage, adminApprovedDays } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
@@ -210,23 +191,25 @@ const approveRequest = async (req, res) => {
 
         const updateData = {
             issued,
-            requestStatus: 'approved'
+            issuedDate: moment.tz("Asia/Kolkata").startOf('day').toDate(),
+            requestStatus: 'approved',
+            adminApprovedDays: adminApprovedDays,
+            returnDate: moment.tz("Asia/Kolkata").add(adminApprovedDays, 'days').startOf('day').utc().toDate()
         };
 
-        if (issuedDescription) {
-            updateData.issuedDescription = issuedDescription;
+        if (adminReturnMessage) {
+            updateData.adminReturnMessage = adminReturnMessage;
         }
 
         const approvedRequest = await Requests.findByIdAndUpdate(
             id,
             {
-                $set: updateData,
-                $push: { issuedDate: issuedDate ? new Date(issuedDate) : new Date() }
+                $set: updateData
             },
             { new: true, runValidators: true }
         )
-        .populate('userId', 'name email rollno')
-        .populate('referenceId', 'name email rollno');
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
 
 
         if (!approvedRequest) {
@@ -253,27 +236,27 @@ const rejectRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const { issuedDate, issuedDescription } = req.body;
+        const { adminReturnMessage } = req.body;
 
         const updateData = {
             issued: [],
-            requestStatus: 'rejected'
+            requestStatus: 'rejected',
+            issuedDate: moment.tz("Asia/Kolkata").startOf('day').toDate()
         };
 
-        if (issuedDescription) {
-            updateData.issuedDescription = issuedDescription;
+        if (adminReturnMessage) {
+            updateData.adminReturnMessage = adminReturnMessage;
         }
 
         const updatedRequest = await Requests.findByIdAndUpdate(
             id,
             {
                 $set: updateData,
-                $push: { issuedDate: issuedDate ? new Date(issuedDate) : new Date() }
             },
             { new: true, runValidators: true }
         )
-        .populate('userId', 'name email rollno')
-        .populate('referenceId', 'name email rollno');
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
 
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
@@ -301,29 +284,18 @@ const fetchUserRequests = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const requests = await Requests.find({ userId: userId })
-            .populate('userId', 'name email rollno')
-            .populate('referenceId', 'name email rollno');
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
 
         if (!requests) {
             return res.status(404).json({ message: 'No Request found' });
         }
 
-        const formattedRequests = requests.map(req => {
-            const latestRequestDate = req.requestDate?.[req.requestDate.length - 1] || null;
-            const latestIssuedDate = req.issuedDate?.[req.issuedDate.length - 1] || null;
-
-            return {
-                ...req._doc,
-                requestDate: latestRequestDate,
-                issuedDate: latestIssuedDate
-            };
-        });
-
         //Send request details
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
-            requests: formattedRequests
+            requests: requests
         });
     } catch (err) {
         console.error('Error in fetchUserRequest:', err);
@@ -342,29 +314,18 @@ const fetchRefRequests = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const requests = await Requests.find({ referenceId: refId })
-            .populate('userId', 'name email rollno')
-            .populate('referenceId', 'name email rollno');
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
 
         if (!requests) {
             return res.status(404).json({ message: 'No Request found' });
         }
 
-        const formattedRequests = requests.map(req => {
-            const latestRequestDate = req.requestDate?.[req.requestDate.length - 1] || null;
-            const latestIssuedDate = req.issuedDate?.[req.issuedDate.length - 1] || null;
-
-            return {
-                ...req._doc,
-                requestDate: latestRequestDate,
-                issuedDate: latestIssuedDate
-            };
-        });
-
         //Send request details
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
-            requests: formattedRequests
+            requests: requests
         });
     } catch (err) {
         console.error('Error in fetchRefRequest:', err);
@@ -372,4 +333,33 @@ const fetchRefRequests = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests };
+const fetchRequestByStatus = async (req, res) => {
+    try {
+        const { status } = req.query;
+
+        let filter = {};
+
+        if (status === 'pending') {
+            filter.requestStatus = 'pending';
+        } else if (status === 'non-pending') {
+            filter.requestStatus = { $ne: 'pending' };
+        } else {
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+
+        const requests = await Requests.find(filter)
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        return res.status(200).json({
+            status: 200,
+            message: `Requests fetched successfully`,
+            requests,
+        });
+    } catch (err) {
+        console.error('Error in fetchRequestByStatus:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus };

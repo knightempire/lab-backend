@@ -9,21 +9,18 @@ const addDamaged = async (req, res) => {
         //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(requestId)) {
             return res.status(400).json({
-                status: 400,
                 message: 'Invalid request ID format',
             });
         }
 
         if (!mongoose.Types.ObjectId.isValid(productId)) {
             return res.status(400).json({
-                status: 400,
                 message: 'Invalid product ID format',
             });
         }
 
         if (damagedQuantity <= 0) {
             return res.status(400).json({
-                status: 400,
                 message: 'Damaged Quantity must be atleast 1',
             });
         }
@@ -86,7 +83,6 @@ const fetchDamaged = async (req, res) => {
         //No damaged product to display
         if (!damagedProducts.length) {
             return res.status(404).json({
-                status: 404,
                 message: 'No product found'
             });
         }
