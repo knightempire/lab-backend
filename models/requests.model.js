@@ -65,8 +65,8 @@ const requestSchema = new mongoose.Schema(
         },
 
         requestDate: {
-            type: [Date],
-            default: () => [moment.tz("Asia/Kolkata").toDate()],
+            type: Date,
+            default: () => moment.tz("Asia/Kolkata").toDate(),
         },
 
         requestedDays: {
@@ -83,10 +83,20 @@ const requestSchema = new mongoose.Schema(
 
         issued: [issuedSchema],
 
-        issuedDate: {
-            type: [Date],
-            default: []
+        returnDate: {
+            type: Date,
+            default: null
         },
+
+        issuedDate: {
+            type: Date,
+            default: null
+        },
+
+        // reissued: {
+        //     type: Boolean,
+        //     default: false
+        // },
 
         adminReturnMessage: {
             type: String,
