@@ -1,7 +1,26 @@
 //controllers/requests.controllers.js
 const Requests = require('../models/requests.model');
+const Users = require('../models/user.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
+
+const generateRequestId = async (isFaculty) => {
+    const currentYear = new Date().getFullYear();
+
+    const prefix = `REQ-${isFaculty ? 'F' : 'S'}-${currentYear.toString().slice(-2)}`;
+
+    const latestRequest = await Requests.findOne({
+        requestId: { $regex: `^${prefix}` }
+    }).sort({ requestId: -1 });
+
+    let nextSerial = '0001';
+    if (latestRequest) {
+        const lastSerial = parseInt(latestRequest.requestId.slice(-4));
+        nextSerial = (lastSerial + 1).toString().padStart(4, '0');
+    }
+
+    return `${prefix}${nextSerial}`;
+};
 
 const addRequest = async (req, res) => {
     try {
@@ -30,8 +49,16 @@ const addRequest = async (req, res) => {
             });
         }
 
+        const user = await Users.findById(requestUserId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const requestId = await generateRequestId(user.isFaculty);
+
         //Prepare requestData with required fields
         const requestData = {
+            requestId,
             userId: requestUserId,
             referenceId,
             description,
@@ -191,10 +218,10 @@ const approveRequest = async (req, res) => {
 
         const updateData = {
             issued,
-            issuedDate: moment.tz("Asia/Kolkata").startOf('day').toDate(),
+            issuedDate: moment.tz("Asia/Kolkata").toDate(),
             requestStatus: 'approved',
             adminApprovedDays: adminApprovedDays,
-            returnDate: moment.tz("Asia/Kolkata").add(adminApprovedDays, 'days').startOf('day').utc().toDate()
+            returnDate: moment.tz("Asia/Kolkata").add(adminApprovedDays, 'days').utc().toDate()
         };
 
         if (adminReturnMessage) {
@@ -241,7 +268,7 @@ const rejectRequest = async (req, res) => {
         const updateData = {
             issued: [],
             requestStatus: 'rejected',
-            issuedDate: moment.tz("Asia/Kolkata").startOf('day').toDate()
+            issuedDate: moment.tz("Asia/Kolkata").toDate()
         };
 
         if (adminReturnMessage) {

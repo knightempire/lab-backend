@@ -47,6 +47,12 @@ const issuedSchema = new mongoose.Schema(
 
 const requestSchema = new mongoose.Schema(
     {
+        requestId: {
+            type: String,
+            required: true,
+            unique: true
+        },
+
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
@@ -93,10 +99,10 @@ const requestSchema = new mongoose.Schema(
             default: null
         },
 
-        // reissued: {
-        //     type: Boolean,
-        //     default: false
-        // },
+        reissued: {
+            type: Boolean,
+            default: false
+        },
 
         adminReturnMessage: {
             type: String,

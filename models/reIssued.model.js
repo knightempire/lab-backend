@@ -30,8 +30,9 @@ const reIssuedSchema = new mongoose.Schema(
         },
 
         status: {
-            type: Boolean,
-            default: false
+            type: String,
+            enum: ["approved", "pending", "rejected"],
+            default: "pending"
         }
     }
 );
