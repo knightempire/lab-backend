@@ -29,6 +29,7 @@ const verifyToken = async (req, res) => {
         email,
         name,
         rollNo,
+
       },
     });
   } catch (err) {
@@ -49,7 +50,7 @@ const loginUser = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json({ message: 'Invalid email' });
     }
 
 
@@ -64,7 +65,7 @@ const loginUser = async (req, res) => {
    
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json({ message: 'Invalid  password' });
     }
 
     
@@ -125,6 +126,9 @@ const loginUser = async (req, res) => {
           email: email,
           name: user.name,
           rollNo: user.rollNo,
+          isFaculty: user.isFaculty,
+          isAdmin: user.isAdmin,
+          isActive: user.isActive,
 
         },
       });
