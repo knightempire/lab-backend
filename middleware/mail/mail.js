@@ -23,7 +23,7 @@ const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
     const token = await registermailtoken(tokenData, type);
     console.log(token);
 
-    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}#type=register`;
+    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=register`;
 
     const htmlContent = type === 'admin'
       ? TEMPLATE_ADMIN_WELCOME_MAIL(name, verificationUrl)
@@ -47,7 +47,7 @@ const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
   }
 };
 
-// Function to send forgot password email
+
 const sendforgotEmail = async (email, name) => {
   try {
     console.log("sendforgotEmail");
@@ -56,7 +56,7 @@ const sendforgotEmail = async (email, name) => {
     const token = await forgotmailtoken(tokenData);
     console.log(token);
 
-    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}#type=forgot`;
+    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=forgot`;
 
     const htmlContent = TEMPLATE_RESET_MAIL(name, verificationUrl);
 
