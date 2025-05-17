@@ -170,14 +170,18 @@ const TEMPLATE_WELCOME_MAIL = (name, verificationUrl) => {
       </head>
    <body>
     <div class="container">
-        <header>
-            <img class="logo" src="https://images.ctfassets.net/tyqyfq36jzv2/4LDyHu4fEajllYmI8y5bj7/124bcfb1b6a522326d7d90ac1e3debc8/Linkedin-logo-png.png" alt="">
-        </header>
+<header>
+    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
+</header>
+
     
- <main>
+        <main>
             <h1>Hello ${name},</h1> <br>
             
-            <p class="verification-text">Welcome to Amuda-lab– your go-to hub for real-time content! Stay updated with trending posts and discussions from across the web, all curated just for you.</p>
+            <p class="verification-text">Welcome to Amudalab Equipment Management – we’re excited to have you on board!
+<br>
+To get started and enjoy seamless access to our equipment booking and management services, please verify your account by clicking the link below:
+</p>
 
             
       
@@ -192,6 +196,7 @@ const TEMPLATE_WELCOME_MAIL = (name, verificationUrl) => {
             <p class="expiration-text">This verification link will expire in the next 5 minutes. Please do not share this link with anyone for security reasons. It's important to keep your link confidential to prevent unauthorized access to your account.</p>
     
             <p class="regards-text">
+                Thank you for joining us! <br>
                 Best Regards, <br>
                 The Amuda-lab Team<br>
               
