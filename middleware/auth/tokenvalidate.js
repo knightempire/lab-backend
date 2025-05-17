@@ -92,11 +92,12 @@ async function admintokenValidator(req, res, next) {
             if (!payload.isAdmin) {
                 return res.status(401).send({ message: 'You are not authorized to access this resource.' });
             }
-
+            next();
         } else {
             console.log("Invalid token payload:", payload); 
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
+        next();
     } catch (err) {
         console.error("Token verification error:", err.message);
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });

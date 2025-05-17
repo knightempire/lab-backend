@@ -23,8 +23,8 @@ const returnSchema = new mongoose.Schema(
         },
 
         returnDate: {
-            type: Date,
-            default: null
+            type: [Date],
+            default: []
         }
     }
 );
@@ -47,6 +47,12 @@ const issuedSchema = new mongoose.Schema(
 
 const requestSchema = new mongoose.Schema(
     {
+        requestId: {
+            type: String,
+            required: true,
+            unique: true
+        },
+
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
@@ -55,7 +61,7 @@ const requestSchema = new mongoose.Schema(
 
         referenceId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Users",
+            ref: "References",
             required: true
         },
 
@@ -74,16 +80,31 @@ const requestSchema = new mongoose.Schema(
             required: true
         },
 
+        adminApprovedDays: {
+            type: Number,
+            default: null
+        },
+
         requestedProducts: [requestedSchema],
 
         issued: [issuedSchema],
+
+        returnDate: {
+            type: Date,
+            default: null
+        },
 
         issuedDate: {
             type: Date,
             default: null
         },
 
-        issuedDescription: {
+        reissued: {
+            type: Boolean,
+            default: false
+        },
+
+        adminReturnMessage: {
             type: String,
             default: null
         },

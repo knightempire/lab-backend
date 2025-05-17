@@ -1,13 +1,16 @@
 const express = require('express');
 const request = express.Router(); 
-const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest } = require('../controllers/requests.controllers');
-const { admintokenValidator } = require('../middleware/auth/tokenvalidate.js');
+const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus } = require('../controllers/requests.controllers');
+const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 
-request.post('/add', addRequest);
-request.put('/update/:id', updateRequest);
+request.post('/add', tokenValidator, addRequest);
+request.put('/update/:id', tokenValidator, updateRequest);
 request.get('/get', admintokenValidator, fetchAllRequests);
-request.get('/get/:id', fetchRequest);
+request.get('/user-get/:id', admintokenValidator, fetchUserRequests);
+request.get('/ref-get/:id', admintokenValidator, fetchRefRequests);
+request.get('/get/:id', tokenValidator, fetchRequest);
 request.post('/approve/:id', admintokenValidator, approveRequest);
 request.post('/reject/:id', admintokenValidator, rejectRequest);
+request.get('/', admintokenValidator, fetchRequestByStatus);
 
 module.exports = request;
