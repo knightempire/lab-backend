@@ -221,11 +221,12 @@ const TEMPLATE_RESET_MAIL = (name, verificationUrl) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>${COMMON_STYLES}</style>
       </head>
-     <body>
+<body>
     <div class="container">
-        <header>
-            <img class="logo" src="https://images.ctfassets.net/tyqyfq36jzv2/4LDyHu4fEajllYmI8y5bj7/124bcfb1b6a522326d7d90ac1e3debc8/Linkedin-logo-png.png" alt="">
-        </header>
+    <header>
+    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
+</header>
+
     
         <main>
             <h1>Hello ${name},</h1> <br>
