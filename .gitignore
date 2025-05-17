@@ -28,7 +28,7 @@ dist-ssr
 
 **/mailer.js
 **/mailer1.js
-**/private_key.pem
-**/public_key.pem
+# **/private_key.pem
+# **/public_key.pem
 
 
