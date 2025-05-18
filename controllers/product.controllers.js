@@ -6,9 +6,9 @@ const XLSX = require('xlsx');
 //Function to add Product
 const addProduct = async (req, res) => {
     try {
-        let {name, quantity, damagedQuantity, inStock} = req.body;
+        let {product_name, quantity, damagedQuantity, inStock} = req.body;
         
-        const requiredFields = ['name', 'quantity', 'damagedQuantity', 'inStock'];
+        const requiredFields = ['product_name', 'quantity', 'damagedQuantity', 'inStock'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
         //Ensure all Fields are provided
@@ -20,18 +20,18 @@ const addProduct = async (req, res) => {
 
         //Check if product already exists
         console.log('Checking if product already exists');
-        name = name.trim().toLowerCase();
+        product_name = product_name.trim().toLowerCase();
         const existingProduct = await Products.findOne({
-            name: { $regex: new RegExp('^' + name + '$', 'i') }
+            product_name: { $regex: new RegExp('^' + product_name + '$', 'i') }
         });
         if (existingProduct) {
-            console.log('Product already exists:', name);
+            console.log('Product already exists:', naproduct_nameme);
             return res.status(400).json({ message: 'Product already exists' });
         }
 
         //Create a new product instance
-        console.log('Creating new product with name:', name);
-        const newProduct = new Products({name, quantity, damagedQuantity, inStock});
+        console.log('Creating new product with product_name:', product_name);
+        const newProduct = new Products({product_name, quantity, damagedQuantity, inStock});
 
         //Save the product to the database
         console.log('Saving new product to the database');
@@ -43,7 +43,7 @@ const addProduct = async (req, res) => {
             status: 201,
             message: 'Product created successfully',
             component: {
-                name: newProduct.name,
+                product_name: newProduct.product_name,
                 quantity: newProduct.quantity,
                 damagedQuantity: newProduct.damagedQuantity,
                 inStock: newProduct.inStock,
@@ -66,7 +66,7 @@ const bulkAddProducts = async (req, res) => {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
 
-        const requiredFields = ['name', 'quantity', 'damagedQuantity', 'inStock'];
+        const requiredFields = ['product_name', 'quantity', 'damagedQuantity', 'inStock'];
         const missingColumns = requiredFields.filter(field => !Object.keys(rows[0] || {}).includes(field));
         if (missingColumns.length > 0) {
             return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
@@ -83,19 +83,19 @@ const bulkAddProducts = async (req, res) => {
         const created = [], updated = [];
 
         for (const row of rows) {
-            const { name, quantity, damagedQuantity, inStock } = row;
+            const { product_name, quantity, damagedQuantity, inStock } = row;
 
-            const existing = await Products.findOne({ name: { $regex: new RegExp('^' + name + '$', 'i') } });
+            const existing = await Products.findOne({ product_name: { $regex: new RegExp('^' + product_name + '$', 'i') } });
 
             if (existing) {
                 existing.quantity = quantity;
                 existing.damagedQuantity = damagedQuantity;
                 existing.inStock = inStock;
                 await existing.save();
-                updated.push(name);
+                updated.push(product_name);
             } else {
-                const newProduct = await Products.create({ name, quantity, damagedQuantity, inStock });
-                created.push(newProduct.name);
+                const newProduct = await Products.create({ product_name, quantity, damagedQuantity, inStock });
+                created.push(newProduct.product_name);
             }
         }
 
@@ -124,7 +124,7 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        const fields = ['quantity', 'damagedQuantity', 'inStock', 'isDisplay'];
+        const fields = ['product_name' ,'quantity', 'damagedQuantity', 'inStock', 'isDisplay'];
         const updates = {};
 
         for (let i of fields) {
@@ -171,7 +171,7 @@ const fetchAllProducts = async (req, res) => {
             message: 'Products fetched successfully',
             products: products.map(product => ({
                 id: product._id,
-                name: product.name,
+                product_name: product.product_name,
                 quantity: product.quantity,
                 damagedQuantity: product.damagedQuantity,
                 inStock: product.inStock
