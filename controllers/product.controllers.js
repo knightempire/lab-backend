@@ -25,7 +25,7 @@ const addProduct = async (req, res) => {
             product_name: { $regex: new RegExp('^' + product_name + '$', 'i') }
         });
         if (existingProduct) {
-            console.log('Product already exists:', naproduct_nameme);
+            console.log('Product already exists:', product_name);
             return res.status(400).json({ message: 'Product already exists' });
         }
 
@@ -116,7 +116,7 @@ const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
 
-        //Validate ID format
+        // Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
@@ -124,7 +124,7 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        const fields = ['product_name' ,'quantity', 'damagedQuantity', 'inStock', 'isDisplay'];
+        const fields = ['product_name', 'quantity', 'damagedQuantity', 'inStock', 'isDisplay'];
         const updates = {};
 
         for (let i of fields) {
@@ -133,10 +133,31 @@ const updateProduct = async (req, res) => {
             }
         }
 
-        const updatedProduct = await Products.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+        // Check for duplicate product_name (excluding current product)
+        if (updates.product_name) {
+            const existingProduct = await Products.findOne({
+                product_name: updates.product_name,
+                _id: { $ne: id } // exclude current product by ID
+            });
+
+            if (existingProduct) {
+                return res.status(400).json({
+                    status: 400,
+                    message: 'Product already exists',
+                });
+            }
+        }
+
+        const updatedProduct = await Products.findByIdAndUpdate(id, updates, {
+            new: true,
+            runValidators: true,
+        });
 
         if (!updatedProduct) {
-            return res.status(404).json({ message: `Product with Id: ${id} doesn't exist.` });
+            return res.status(404).json({
+                status: 404,
+                message: `Product with Id: ${id} doesn't exist.`,
+            });
         }
 
         return res.status(200).json({
@@ -148,7 +169,8 @@ const updateProduct = async (req, res) => {
         console.error('Error in updateProduct:', err);
         return res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
 
 //Function to display all products
 const fetchAllProducts = async (req, res) => {
