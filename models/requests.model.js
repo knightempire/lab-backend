@@ -23,8 +23,18 @@ const returnSchema = new mongoose.Schema(
         },
 
         returnDate: {
-            type: [Date],
-            default: []
+            type: Date,
+            default: () => moment.tz("Asia/Kolkata").toDate()
+        },
+
+        damagedQuantity: {
+            type: Number,
+            default: 0
+        },
+        
+        replacedQuantity: {
+            type: Number,
+            default: 0
         }
     }
 );
@@ -89,19 +99,14 @@ const requestSchema = new mongoose.Schema(
 
         issued: [issuedSchema],
 
-        returnDate: {
-            type: Date,
-            default: null
-        },
-
         issuedDate: {
             type: Date,
             default: null
         },
 
-        reissued: {
-            type: Boolean,
-            default: false
+        reIssued: {
+            type: [String],
+            default: []
         },
 
         adminReturnMessage: {
@@ -109,9 +114,19 @@ const requestSchema = new mongoose.Schema(
             default: null
         },
 
+        isDamaged: {
+            type: Boolean,
+            default: false
+        },
+
         isAllReturned: {
             type: Boolean,
             default: false
+        },
+
+        returnedDate: {
+            type: Date,
+            default: null
         },
 
         requestStatus: {

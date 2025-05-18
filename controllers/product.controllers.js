@@ -165,13 +165,15 @@ const fetchAllProducts = async (req, res) => {
             });
         }
 
+        console.log(products);
+
         //Send the products details
         return res.status(200).json({
             status: 200,
             message: 'Products fetched successfully',
             products: products.map(product => ({
                 id: product._id,
-                product_name: product.product_name,
+                name: product.product_name,
                 quantity: product.quantity,
                 damagedQuantity: product.damagedQuantity,
                 inStock: product.inStock
