@@ -1,19 +1,30 @@
 
 require('dotenv').config();
-const Token = require("../../models/token");
+const Token = require("../../models/token.model");
 const paseto = require('paseto');
 const { V4: { verify } } = paseto;
 const fs = require('fs');
 const path = require('path');
 
-// Load the public key from the file
-const public_key_path = path.resolve(__dirname, '../rsa/public_key.pem');
-const public_key = fs.readFileSync(public_key_path);
 
 // Environment variables for secret keys
 const secret_key = process.env.SECRET_KEY;
 const mail_secret_key = process.env.MAIL_SECRET_KEY;
 const forgot_secret_key = process.env.FORGOT_SECRET_KEY;
+
+// Load the public key from the file
+const public_key_path = path.resolve(__dirname, '../rsa/public_key.pem');
+
+function getPublicKey() {
+    try {
+        return fs.readFileSync(public_key_path);
+    } catch (err) {
+        console.warn(`⚠️ Public key not found or unreadable at ${public_key_path}. Using fallback value "123".`);
+        return '123';
+    }
+}
+
+
 
 // Token verification for "create" token
 async function tokenValidator(req, res, next) {
@@ -27,24 +38,28 @@ async function tokenValidator(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key);  
+            const public_key = getPublicKey();
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        } 
 
-        // Ensure payload contains required fields
         if (payload && payload.secret_key === secret_key) {
-            // Attach payload data to req.body
+
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
-            req.body.username = payload.username;
-            req.body.role = payload.role;
+            req.body.rollNo = payload.rollNo;
+            req.body.isFaculty = payload.isFaculty;
 
-            // Log the payload to verify it's correct
+
             console.log("Token payload:", payload);
             console.log("User details added to request body:"); 
             return next();  
 
         } else {
-            console.log("Invalid token payload:", payload); 
+            console.log("Invalid token payload:", payload);
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
@@ -54,7 +69,7 @@ async function tokenValidator(req, res, next) {
 }
 
 // Token verification for "create" token
-async function adimtokenValidator(req, res, next) {
+async function admintokenValidator(req, res, next) {
     console.log("admintokenValidator")
     const tokenHeader = req.headers.authorization;
     const token = tokenHeader && tokenHeader.split(' ')[1];
@@ -65,32 +80,38 @@ async function adimtokenValidator(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key);  
+            const public_key = getPublicKey();
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
 
-        // Ensure payload contains required fields
+
         if (payload && payload.secret_key === secret_key) {
 
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
-            req.body.username = payload.username;
-            req.body.role = payload.role;
+            req.body.rollNo = payload.rollNo;
+            req.body.isFaculty = payload.isFaculty;
+            req.body.isAdmin = payload.isAdmin; 
 
-            // Log the payload to verify it's correct
+
+    
             console.log("Token payload:", payload);
-            console.log("User details added to request body:"); 
-            console.log("User role:", payload.role);
-            if(payload.role !== "admin") {
-                return res.status(401).send({ MESSAGE: 'You are not authorized to access this resource.' });
+            console.log("User details added to request body:");
+            console.log("User isAdmin:", payload.isAdmin); 
+            if (!payload.isAdmin) {
+                return res.status(401).send({ message: 'You are not authorized to access this resource.' });
             }
-            return next(); 
 
         } else {
             console.log("Invalid token payload:", payload); 
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-        console.error("Token verification error:", err.message); 
+        console.error("Token verification error:", err.message);
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
     }
 }
@@ -99,63 +120,71 @@ async function adimtokenValidator(req, res, next) {
 
 // Token verification for "register" token
 async function readverifyRegisterTokens(req, res, next) {
-    // Retrieve the token from the Authorization header
+
     const tokenHeader = req.headers.authorization;
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
     console.log("Received token:", token); 
-
 
     if (!token) {
         return res.status(401).send({ MESSAGE: 'Missing or invalid token.' });
     }
 
     try {
-        // Check if the token exists in the database
+    
         const existingToken = await Token.findOne({ token });
-        console.log("Token found in database:", existingToken);
+        console.log("Token found in database:", existingToken); 
+
 
         if (!existingToken) {
             return res.status(401).send({ MESSAGE: 'Token not found in database or has already been used.' });
         }
 
 
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
         console.log("Decoded payload:", payload); 
 
+     
         if (payload && payload.secret_key === mail_secret_key) {
 
             req.body = req.body || {};  
 
+          
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
-
+            req.body.phoneNo = payload.phoneNo;
+            req.body.isFaculty = payload.isFaculty;
+          
             console.log("User details added to request body:", req.body); 
-
 
             next();
         } else {
- 
+   
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-    
+       
         console.error("Error verifying token:", err.message); 
+
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
     }
 }
 
 
 
-// Token verification for "forgot" token
 
 async function readverifyForgotToken(req, res, next) {
-    // Retrieve the token from the Authorization header
+
     const tokenHeader = req.headers.authorization;
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
     console.log("Received token:", token); 
+
 
     if (!token) {
         return res.status(401).send({ MESSAGE: 'Missing or invalid token.' });
@@ -166,13 +195,16 @@ async function readverifyForgotToken(req, res, next) {
         const existingToken = await Token.findOne({ token });
         console.log("Token found in database:", existingToken); 
 
-
         if (!existingToken) {
             return res.status(401).send({ MESSAGE: 'Token not found in database or has already been used.' });
         }
 
 
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
         console.log("Decoded payload:", payload);
 
         console.log("Decoded are ", )
@@ -184,15 +216,16 @@ async function readverifyForgotToken(req, res, next) {
             req.body.userId = payload.id;
             req.body.name = payload.name;
 
-            console.log("User details added to request body:", req.body);
+            console.log("User details added to request body:", req.body); 
 
+     
             next();
         } else {
-
+     
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
-  
+      
         console.error("Error verifying token:", err.message); 
 
         return res.status(401).send({ MESSAGE: 'Invalid or expired token: ' + err.message });
@@ -214,8 +247,15 @@ async function verifyRegisterToken(req, res, next) {
     }
 
     try {
-        const payload = await verify(token, public_key);
+              const payload = await verify(token, public_key);
+        
+        if (!req.body) {
+            req.body = {};  
+        }
+        
 
+
+        
         if (payload && payload.secret_key === mail_secret_key) {
            
             const existingToken = await Token.findOne({ token });
@@ -228,6 +268,10 @@ async function verifyRegisterToken(req, res, next) {
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
+            req.body.phoneNo = payload.phoneNo;
+            req.body.isFaculty = payload.isFaculty;
+
+
             await Token.deleteOne({ token });
 
             next();
@@ -249,33 +293,37 @@ async function verifyForgotToken(req, res, next) {
     }
 
     try {
-    
-        const payload = await verify(token, public_key);
+  
+              const payload = await verify(token, public_key);
         
-        // Check if the payload contains the correct secret_key
+        if (!req.body) {
+            req.body = {};  
+        }
+        
+
         if (payload && payload.secret_key === forgot_secret_key) {
-            // Check if the token exists in the database
+
             const existingToken = await Token.findOne({ token });
             console.log(existingToken);
             if (!existingToken) {
                 return res.status(401).send({ MESSAGE: 'Token has already been used or expired.' });
             }
 
-            // Attach user information from the token payload to the request body
+         
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;
 
-            // Delete the token from the database after use
+     
             await Token.deleteOne({ token });
 
-            // Proceed to the next middleware or route handler
+
             next();
         } else {
             return res.status(401).send({ MESSAGE: 'Invalid forgot token payload.' });
         }
     } catch (err) {
-        // Handle the error when token is expired
+
         if (err.name === 'TokenExpiredError') {
             return res.status(401).send({ MESSAGE: 'Forgot token has expired.' });
         }
@@ -291,5 +339,5 @@ module.exports = {
     verifyForgotToken,
     readverifyForgotToken,
     readverifyRegisterTokens,
-    adimtokenValidator
+    admintokenValidator
 };
