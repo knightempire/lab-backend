@@ -152,9 +152,6 @@ async function readverifyRegisterTokens(req, res, next) {
 
      
         if (payload && payload.secret_key === mail_secret_key) {
-
-            req.body = req.body || {};  
-
           
             req.body.email = payload.email;
             req.body.userId = payload.id;
@@ -166,7 +163,7 @@ async function readverifyRegisterTokens(req, res, next) {
 
             next();
         } else {
-   
+            console.log("Invalid token payload:", payload);
             return res.status(401).send({ MESSAGE: 'Invalid token payload.' });
         }
     } catch (err) {
@@ -215,7 +212,6 @@ async function readverifyForgotToken(req, res, next) {
             req.body = req.body || {};  
 
             req.body.email = payload.email;
-            req.body.userId = payload.id;
             req.body.name = payload.name;
 
             console.log("User details added to request body:", req.body); 
