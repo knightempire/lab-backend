@@ -141,6 +141,7 @@ async function readverifyRegisterTokens(req, res, next) {
             return res.status(401).send({ MESSAGE: 'Token not found in database or has already been used.' });
         }
 
+          const public_key = getPublicKey();
 
               const payload = await verify(token, public_key);
         
@@ -200,7 +201,7 @@ async function readverifyForgotToken(req, res, next) {
             return res.status(401).send({ MESSAGE: 'Token not found in database or has already been used.' });
         }
 
-
+          const public_key = getPublicKey();
               const payload = await verify(token, public_key);
         
         if (!req.body) {
@@ -248,6 +249,7 @@ async function verifyRegisterToken(req, res, next) {
     }
 
     try {
+          const public_key = getPublicKey();
               const payload = await verify(token, public_key);
         
         if (!req.body) {
@@ -295,6 +297,7 @@ async function verifyForgotToken(req, res, next) {
 
     try {
   
+          const public_key = getPublicKey();
               const payload = await verify(token, public_key);
         
         if (!req.body) {
