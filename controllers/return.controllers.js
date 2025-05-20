@@ -1,43 +1,40 @@
 //controllers/return.controllers.js
 const Requests = require('../models/requests.model');
-const mongoose = require('mongoose');
 
 const returnProducts = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { requestId } = req.params;
 
-        // Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
+        if (!requestId || typeof requestId !== 'string' || !/^REQ-[FS]-\d{2}\d{4}$/.test(requestId)) {
+            return res.status(400).json({ message: 'Invalid requestId format' });
         }
 
         const { product_name, returnQuantity, returnDate, damagedQuantity, userDamagedQuantity, replacedQuantity } = req.body;
 
-        // Validate required fields
-        if (
-            !product_name ||
-            typeof returnQuantity !== 'number' ||
-            returnQuantity < 1
-        ) {
+        if (!product_name || typeof returnQuantity !== 'number' || returnQuantity < 1) {
             return res.status(400).json({ message: 'Invalid input data' });
         }
 
-        // Fetch the request
-        const request = await Requests.findById(id);
+        // Fetch the request by requestId
+        const request = await Requests.findOne({ requestId });
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // Find the issued product
+        if (request.requestStatus !== 'approved') {
+            return res.status(400).json({ message: 'Request is not approved' });
+        }
+
         const issuedItem = request.issued.find(
             (item) => item.issuedProduct.trim().toLowerCase() === product_name.trim().toLowerCase()
         );
+
         if (!issuedItem) {
             return res.status(404).json({ message: 'Issued product not found in this request' });
         }
 
         const totalReturned = issuedItem.return.reduce((sum, r) => sum + (r.returnedQuantity - r.replacedQuantity), 0);
-        console.log('Total returned quantity:', totalReturned);
+
         if (returnQuantity + totalReturned > issuedItem.issuedQuantity) {
             return res.status(400).json({ message: 'Return quantity exceeds issued quantity' });
         }
@@ -52,7 +49,11 @@ const returnProducts = async (req, res) => {
 
         await request.save();
 
-        res.status(200).json({ message: 'Product return recorded successfully', request });
+        res.status(200).json({ 
+            status: 200,
+            message: 'Product returned successfully', 
+            request
+        });
     } catch (err) {
         console.log('Error in returnProducts: ', err);
         res.status(500).json({ message: "Server error" });
@@ -62,15 +63,13 @@ const returnProducts = async (req, res) => {
 // add fetchReturn function
 const fetchReturn = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { requestId } = req.params;
 
-        // Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
+        if (!requestId || typeof requestId !== 'string' || !/^REQ-[FS]-\d{2}\d{4}$/.test(requestId)) {
+            return res.status(400).json({ message: 'Invalid requestId format' });
         }
 
-        // Fetch the request
-        const request = await Requests.findById(id);
+        const request = await Requests.findOne({ requestId });
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
@@ -85,7 +84,7 @@ const fetchReturn = async (req, res) => {
             const totalReplaced = item.return.reduce((sum, r) => sum + r.replacedQuantity, 0);
             const totalDamaged = item.return.reduce((sum, r) => sum + r.damagedQuantity, 0);
             const totalUserDamaged = item.return.reduce((sum, r) => sum + r.userDamagedQuantity, 0);
-            const remaining = item.issuedQuantity - item.return.reduce((sum, r) => sum + (r.returnedQuantity - r.replacedQuantity), 0);;
+            const remaining = item.issuedQuantity - item.return.reduce((sum, r) => sum + (r.returnedQuantity - r.replacedQuantity), 0);                  
 
             return {
                 issuedProduct: item.issuedProduct,
@@ -101,7 +100,7 @@ const fetchReturn = async (req, res) => {
 
         res.status(200).json({
             status: 200,
-            message: 'Request fetched successfully',
+            message: "Request's return fetched successfully",
             return: returnDetails
         });
     } catch (err) {
