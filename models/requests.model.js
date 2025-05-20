@@ -31,6 +31,11 @@ const returnSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
+
+        userDamagedQuantity: {
+            type: Number,
+            default: 0
+        },
         
         replacedQuantity: {
             type: Number,
