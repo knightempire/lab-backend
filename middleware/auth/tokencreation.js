@@ -57,6 +57,7 @@ async function registermailtoken(data) {
 
     data.tokenId = savedToken._id;
 
+    const private_key = getPrivateKey(); 
     let token = await sign(data, private_key, { expiresIn: mailexpiresIn });
 
 
@@ -83,13 +84,14 @@ async function forgotmailtoken(data) {
         email: data.email,
     });
 
+    
     const savedToken = await newToken.save();
 
 
     console.log('Token ID:', savedToken._id);
 
     data.tokenId = savedToken._id;
-
+        const private_key = getPrivateKey(); 
     let token = await sign(data, private_key, { expiresIn: mailexpiresIn });
 
 
