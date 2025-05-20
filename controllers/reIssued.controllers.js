@@ -1,13 +1,10 @@
-// Have updated request Schema to convert the request and issued date to date instead of array, and have modified the controllers accordingly have also added controllers for fetching request by status.
-
-// Have created reIssued and have also created add, update and get controllers for it
-
-const moment = require('moment-timezone');
-const ReIssued = require('../models/reIssued.model'); // adjust path as needed
+const mongoose = require('mongoose');
+const ReIssued = require('../models/reIssued.model');
+const Requests = require('../models/requests.model');
 
 const addReIssued = async (req, res) => {
     try {
-        const { requestId, requestedDays } = req.body;
+        const { requestId, requestedDays, requestDescription } = req.body;
 
         if (!requestId || !requestedDays) {
             return res.status(400).json({ message: 'Missing required fields' });
@@ -20,12 +17,30 @@ const addReIssued = async (req, res) => {
             });
         }
 
+        //generate reIssuedId
+        const request = await Requests.findById(requestId);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        const requestIdStr = request.requestId;
+
+        const regex = new RegExp(`^${requestIdStr}-r\\d+$`);
+        const existingCount = await ReIssued.countDocuments({ reIssuedId: { $regex: regex } });
+
+        const newReIssuedId = `${requestIdStr}-r${existingCount + 1}`;
+
         const newReIssued = new ReIssued({
+            reIssuedId: newReIssuedId,
             requestId,
-            requestedDays
+            requestedDays,
+            requestDescription
         });
 
         await newReIssued.save();
+
+        request.reIssued.push(newReIssuedId);
+        await request.save();
 
         return res.status(201).json({
             status: 201,
