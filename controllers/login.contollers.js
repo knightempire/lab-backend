@@ -12,7 +12,6 @@ const moment = require('moment-timezone');
 
 const verifyToken = async (req, res) => {
   try {
-
     const { email, name } = req.body;
     if (!email || !name) {
       return res.status(400).json({
@@ -20,8 +19,14 @@ const verifyToken = async (req, res) => {
       });
     }
 
+    // Extract rollNo from email if it's not provided
+    let rollNo = req.body.rollNo;
+    if (!rollNo && email) {
+    
+      const emailPrefix = email.split('@')[0];
+      rollNo = emailPrefix; 
+    }
 
-    // Return a successful response with user details
     res.status(200).json({
       status: 200,
       message: 'Token is valid, verified',
@@ -29,7 +34,6 @@ const verifyToken = async (req, res) => {
         email,
         name,
         rollNo,
-
       },
     });
   } catch (err) {
@@ -39,6 +43,7 @@ const verifyToken = async (req, res) => {
     });
   }
 };
+
 
 
 
