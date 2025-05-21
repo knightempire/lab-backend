@@ -25,7 +25,7 @@ const generateRequestId = async (isFaculty) => {
 const addRequest = async (req, res) => {
     try {
         let {
-            requestUserId,
+            userid,
             referenceId,
             description,
             requestDate,
@@ -39,7 +39,7 @@ const addRequest = async (req, res) => {
         } = req.body;
 
         // Required fields check
-        const requiredFields = ['requestUserId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
+        const requiredFields = ['userid', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
         if (missingFields.length > 0) {
@@ -84,6 +84,7 @@ const addRequest = async (req, res) => {
             }
         }
 
+        const requestUserId = userid;
         const user = await Users.findById(requestUserId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
