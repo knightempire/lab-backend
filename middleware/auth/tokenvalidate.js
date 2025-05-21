@@ -46,7 +46,7 @@ async function tokenValidator(req, res, next) {
         } 
 
         if (payload && payload.secret_key === secret_key) {
-
+            req.body.userid = payload.userid,
             req.body.email = payload.email;
             req.body.userId = payload.id;
             req.body.name = payload.name;

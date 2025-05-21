@@ -78,6 +78,7 @@ const loginUser = async (req, res) => {
 
 
     const userData = {
+      userid: user._id,
       email: user.email,
       name: user.name,
       isActive: user.isActive,
