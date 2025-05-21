@@ -65,7 +65,8 @@ const fetchAllUsers = async (req, res) => {
                 rollNo: user.rollNo,
                 phoneNo: user.phoneNo,
                 isFaculty: user.isFaculty,
-                isAdmin: user.isAdmin
+                isAdmin: user.isAdmin,
+                isActive: user.isActive,
             })),
         });
     } catch (err) {
