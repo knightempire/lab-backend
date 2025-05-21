@@ -3,8 +3,9 @@ const moment = require("moment-timezone");
 
 const requestedSchema = new mongoose.Schema(
     {
-        productName: {
-            type: String,
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Products",
             required: true
         },
 
@@ -46,14 +47,15 @@ const returnSchema = new mongoose.Schema(
 
 const issuedSchema = new mongoose.Schema(
     {
-        issuedProduct: {
-            type: String,
-            default: ""
+        issuedProductId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Products",
+            required: true
         },
 
         issuedQuantity: {
             type: Number,
-            default: 0
+            required: true
         },
 
         return: [returnSchema]

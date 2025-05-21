@@ -150,17 +150,6 @@ const fetchAllProducts = async (req, res) => {
                 quantity: product.quantity,
                 damagedQuantity: product.damagedQuantity,
                 inStock: product.inStock
-
-    
-          
-            
-    
-
-          
-          Expand Down
-    
-    
-  
             })),
         });
     } catch (err) {
