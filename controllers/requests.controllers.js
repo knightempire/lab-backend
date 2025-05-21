@@ -38,15 +38,50 @@ const addRequest = async (req, res) => {
             requestStatus
         } = req.body;
 
-        //Required fields check
+        // Required fields check
         const requiredFields = ['requestUserId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
-        console.log(req.body);
 
         if (missingFields.length > 0) {
             return res.status(400).json({
                 message: `Missing required fields: ${missingFields.join(', ')}`
             });
+        }
+
+        // Validate requestedProducts
+        if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
+            return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+        }
+        for (const prod of requestedProducts) {
+            if (
+                !prod.productId ||
+                !mongoose.Types.ObjectId.isValid(prod.productId) ||
+                typeof prod.quantity !== 'number' ||
+                prod.quantity < 1
+            ) {
+                return res.status(400).json({
+                    message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                });
+            }
+        }
+
+        // Validate issued if present
+        if (issued) {
+            if (!Array.isArray(issued)) {
+                return res.status(400).json({ message: 'issued must be an array' });
+            }
+            for (const item of issued) {
+                if (
+                    !item.issuedProductId ||
+                    !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                    typeof item.issuedQuantity !== 'number' ||
+                    item.issuedQuantity < 1
+                ) {
+                    return res.status(400).json({
+                        message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
+                    });
+                }
+            }
         }
 
         const user = await Users.findById(requestUserId);
@@ -56,7 +91,7 @@ const addRequest = async (req, res) => {
 
         const requestId = await generateRequestId(user.isFaculty);
 
-        //Prepare requestData with required fields
+        // Prepare requestData with required fields
         const requestData = {
             requestId,
             userId: requestUserId,
@@ -73,16 +108,13 @@ const addRequest = async (req, res) => {
         if (isAllReturned !== undefined) requestData.isAllReturned = isAllReturned;
         if (requestStatus) requestData.requestStatus = requestStatus;
 
-        //Create a new request instance
-        console.log('Creating new request');
+        // Create a new request instance
         const newRequest = new Requests(requestData);
 
-        //Save the request to the database
-        console.log('Saving new request to the database');
+        // Save the request to the database
         await newRequest.save();
-        console.log('Request saved successfully:', newRequest);
 
-        //Send success response
+        // Send success response
         return res.status(201).json({
             status: 201,
             message: 'Request created successfully',
@@ -96,12 +128,12 @@ const addRequest = async (req, res) => {
 
 const updateRequest = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
-        
+
         const fields = [
             'description',
             'requestedDays',
@@ -112,6 +144,25 @@ const updateRequest = async (req, res) => {
         for (let i of fields) {
             if (req.body[i] !== undefined) {
                 updates[i] = req.body[i];
+            }
+        }
+
+        // Validate requestedProducts if present
+        if (updates.requestedProducts) {
+            if (!Array.isArray(updates.requestedProducts) || updates.requestedProducts.length === 0) {
+                return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+            }
+            for (const prod of updates.requestedProducts) {
+                if (
+                    !prod.productId ||
+                    !mongoose.Types.ObjectId.isValid(prod.productId) ||
+                    typeof prod.quantity !== 'number' ||
+                    prod.quantity < 1
+                ) {
+                    return res.status(400).json({
+                        message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                    });
+                }
             }
         }
 
@@ -208,10 +259,16 @@ const approveRequest = async (req, res) => {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
         }
 
+        // Validate issued array
         for (const item of issued) {
-            if (!item.issuedProduct || typeof item.issuedQuantity !== 'number') {
+            if (
+                !item.issuedProductId ||
+                !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                typeof item.issuedQuantity !== 'number' ||
+                item.issuedQuantity < 1
+            ) {
                 return res.status(400).json({
-                    message: 'Each issued item must contain "issuedProduct" and a numeric "issuedQuantity"'
+                    message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
                 });
             }
         }
@@ -238,7 +295,6 @@ const approveRequest = async (req, res) => {
         .populate('userId', 'name email rollNo')
         .populate('referenceId', 'name email rollNo');
 
-
         if (!approvedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
@@ -249,7 +305,7 @@ const approveRequest = async (req, res) => {
             request: approvedRequest,
         });
     } catch (err) {
-        console.error('Error in :', err);
+        console.error('Error in approveRequest:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
