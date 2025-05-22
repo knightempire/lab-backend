@@ -383,6 +383,36 @@ const fetchUserRequests = async (req, res) => {
     }
 };
 
+const getUserRequests = async (req, res) => {
+    try {
+        const { userid } = req.body;
+        console.log(userid);
+        //Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(userid)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        //Fetch request by ID and populate user references
+        const requests = await Requests.find({ userId: userid })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        if (!requests) {
+            return res.status(404).json({ message: 'No Request found' });
+        }
+
+        //Send request details
+        return res.status(200).json({
+            status: 200,
+            message: 'Requests fetched successfully',
+            requests: requests
+        });
+    } catch (err) {
+        console.error('Error in getUserRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 const fetchRefRequests = async (req, res) => {
     try {
         const { id: refId } = req.params;
@@ -413,6 +443,36 @@ const fetchRefRequests = async (req, res) => {
     }
 };
 
+// const getRefRequests = async (req, res) => {
+//     try {
+//         const { refId } = req.body;
+//         console.log(refId);
+//         //Validate ID format
+//         if (!mongoose.Types.ObjectId.isValid(refId)) {
+//             return res.status(400).json({ message: 'Invalid request ID' });
+//         }
+
+//         //Fetch request by ID and populate user references
+//         const requests = await Requests.find({ referenceId: refId })
+//             .populate('userId', 'name email rollNo')
+//             .populate('referenceId', 'name email rollNo');
+
+//         if (!requests) {
+//             return res.status(404).json({ message: 'No Request found' });
+//         }
+
+//         //Send request details
+//         return res.status(200).json({
+//             status: 200,
+//             message: 'Requests fetched successfully',
+//             requests: requests
+//         });
+//     } catch (err) {
+//         console.error('Error in getRefRequest:', err);
+//         return res.status(500).json({ message: 'Server error' });
+//     }
+// };
+
 const fetchRequestByStatus = async (req, res) => {
     try {
         const { status } = req.query;
@@ -442,4 +502,4 @@ const fetchRequestByStatus = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus };
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests};
