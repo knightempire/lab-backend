@@ -28,14 +28,8 @@ const addRequest = async (req, res) => {
             userid,
             referenceId,
             description,
-            requestDate,
             requestedDays,
-            requestedProducts,
-            issued,
-            issuedDate,
-            adminReturnMessage,
-            isAllReturned,
-            requestStatus
+            requestedProducts
         } = req.body;
 
         // Required fields check
@@ -52,9 +46,9 @@ const addRequest = async (req, res) => {
         if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
             return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
         }
+        
         for (const prod of requestedProducts) {
             if (
-                !prod.productId ||
                 !mongoose.Types.ObjectId.isValid(prod.productId) ||
                 typeof prod.quantity !== 'number' ||
                 prod.quantity < 1
@@ -62,25 +56,6 @@ const addRequest = async (req, res) => {
                 return res.status(400).json({
                     message: 'Each requestedProduct must have a valid productId and a positive quantity'
                 });
-            }
-        }
-
-        // Validate issued if present
-        if (issued) {
-            if (!Array.isArray(issued)) {
-                return res.status(400).json({ message: 'issued must be an array' });
-            }
-            for (const item of issued) {
-                if (
-                    !item.issuedProductId ||
-                    !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
-                    typeof item.issuedQuantity !== 'number' ||
-                    item.issuedQuantity < 1
-                ) {
-                    return res.status(400).json({
-                        message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
-                    });
-                }
             }
         }
 
@@ -108,11 +83,39 @@ const addRequest = async (req, res) => {
         // Save the request to the database
         await newRequest.save();
 
+        const populatedRequest = await Requests.findById(newRequest._id)
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name');
+
+        // Formating the response
+        const responseData = {
+            requestId: populatedRequest.requestId,
+            user: {
+                name: populatedRequest.userId.name,
+                email: populatedRequest.userId.email,
+                rollNo: populatedRequest.userId.rollNo
+            },
+            reference: {
+                name: populatedRequest.referenceId.name,
+                email: populatedRequest.referenceId.email,
+                rollNo: populatedRequest.referenceId.rollNo
+            },
+            description: populatedRequest.description,
+            requestedDays: populatedRequest.requestedDays,
+            requestedProducts: populatedRequest.requestedProducts.map(item => ({
+                productName: item.productId ? item.productId.product_name : null,
+                quantity: item.quantity
+            })),
+            requestDate: populatedRequest.requestDate,
+            requestStatus: populatedRequest.requestStatus
+        };
+
         // Send success response
         return res.status(201).json({
             status: 201,
             message: 'Request created successfully',
-            request: newRequest
+            request: responseData
         });
     } catch (err) {
         console.error('Error in addRequest:', err);
