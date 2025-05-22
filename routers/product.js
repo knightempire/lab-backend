@@ -2,14 +2,14 @@
 const express = require('express');
 const product = express.Router(); 
 const { addProduct, updateProduct, fetchAllProducts, fetchProduct, bulkAddProducts } = require('../controllers/product.controllers');
-const { admintokenValidator } = require('../middleware/auth/tokenvalidate.js');
+const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
 product.post('/add', admintokenValidator, addProduct);
 product.post('/bulkAdd', upload.single('file'),admintokenValidator, bulkAddProducts);
 product.put('/update/:id', admintokenValidator, updateProduct);
-product.get('/get', fetchAllProducts);
-product.get('/get/:id', fetchProduct);
+product.get('/get', tokenValidator, fetchAllProducts);
+product.get('/get/:id', tokenValidator, fetchProduct);
 
 module.exports = product;

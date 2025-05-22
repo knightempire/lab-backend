@@ -25,23 +25,16 @@ const generateRequestId = async (isFaculty) => {
 const addRequest = async (req, res) => {
     try {
         let {
-            requestUserId,
+            userid,
             referenceId,
             description,
-            requestDate,
             requestedDays,
-            requestedProducts,
-            issued,
-            issuedDate,
-            adminReturnMessage,
-            isAllReturned,
-            requestStatus
+            requestedProducts
         } = req.body;
 
-        //Required fields check
-        const requiredFields = ['requestUserId', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
+        // Required fields check
+        const requiredFields = ['userid', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
-        console.log(req.body);
 
         if (missingFields.length > 0) {
             return res.status(400).json({
@@ -49,6 +42,24 @@ const addRequest = async (req, res) => {
             });
         }
 
+        // Validate requestedProducts
+        if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
+            return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+        }
+        
+        for (const prod of requestedProducts) {
+            if (
+                !mongoose.Types.ObjectId.isValid(prod.productId) ||
+                typeof prod.quantity !== 'number' ||
+                prod.quantity < 1
+            ) {
+                return res.status(400).json({
+                    message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                });
+            }
+        }
+
+        const requestUserId = userid;
         const user = await Users.findById(requestUserId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -56,7 +67,7 @@ const addRequest = async (req, res) => {
 
         const requestId = await generateRequestId(user.isFaculty);
 
-        //Prepare requestData with required fields
+        // Prepare requestData with required fields
         const requestData = {
             requestId,
             userId: requestUserId,
@@ -66,27 +77,45 @@ const addRequest = async (req, res) => {
             requestedProducts
         };
 
-        if (requestDate) requestData.requestDate = requestDate;
-        if (issued) requestData.issued = issued;
-        if (issuedDate) requestData.issuedDate = issuedDate;
-        if (adminReturnMessage) requestData.adminReturnMessage = adminReturnMessage;
-        if (isAllReturned !== undefined) requestData.isAllReturned = isAllReturned;
-        if (requestStatus) requestData.requestStatus = requestStatus;
-
-        //Create a new request instance
-        console.log('Creating new request');
+        // Create a new request instance
         const newRequest = new Requests(requestData);
 
-        //Save the request to the database
-        console.log('Saving new request to the database');
+        // Save the request to the database
         await newRequest.save();
-        console.log('Request saved successfully:', newRequest);
 
-        //Send success response
+        const populatedRequest = await Requests.findById(newRequest._id)
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name');
+
+        // Formating the response
+        const responseData = {
+            requestId: populatedRequest.requestId,
+            user: {
+                name: populatedRequest.userId.name,
+                email: populatedRequest.userId.email,
+                rollNo: populatedRequest.userId.rollNo
+            },
+            reference: {
+                name: populatedRequest.referenceId.name,
+                email: populatedRequest.referenceId.email,
+                rollNo: populatedRequest.referenceId.rollNo
+            },
+            description: populatedRequest.description,
+            requestedDays: populatedRequest.requestedDays,
+            requestedProducts: populatedRequest.requestedProducts.map(item => ({
+                productName: item.productId ? item.productId.product_name : null,
+                quantity: item.quantity
+            })),
+            requestDate: populatedRequest.requestDate,
+            requestStatus: populatedRequest.requestStatus
+        };
+
+        // Send success response
         return res.status(201).json({
             status: 201,
             message: 'Request created successfully',
-            request: newRequest
+            request: responseData
         });
     } catch (err) {
         console.error('Error in addRequest:', err);
@@ -96,12 +125,12 @@ const addRequest = async (req, res) => {
 
 const updateRequest = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
-        
+
         const fields = [
             'description',
             'requestedDays',
@@ -112,6 +141,25 @@ const updateRequest = async (req, res) => {
         for (let i of fields) {
             if (req.body[i] !== undefined) {
                 updates[i] = req.body[i];
+            }
+        }
+
+        // Validate requestedProducts if present
+        if (updates.requestedProducts) {
+            if (!Array.isArray(updates.requestedProducts) || updates.requestedProducts.length === 0) {
+                return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+            }
+            for (const prod of updates.requestedProducts) {
+                if (
+                    !prod.productId ||
+                    !mongoose.Types.ObjectId.isValid(prod.productId) ||
+                    typeof prod.quantity !== 'number' ||
+                    prod.quantity < 1
+                ) {
+                    return res.status(400).json({
+                        message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                    });
+                }
             }
         }
 
@@ -208,10 +256,16 @@ const approveRequest = async (req, res) => {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
         }
 
+        // Validate issued array
         for (const item of issued) {
-            if (!item.issuedProduct || typeof item.issuedQuantity !== 'number') {
+            if (
+                !item.issuedProductId ||
+                !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                typeof item.issuedQuantity !== 'number' ||
+                item.issuedQuantity < 1
+            ) {
                 return res.status(400).json({
-                    message: 'Each issued item must contain "issuedProduct" and a numeric "issuedQuantity"'
+                    message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
                 });
             }
         }
@@ -238,7 +292,6 @@ const approveRequest = async (req, res) => {
         .populate('userId', 'name email rollNo')
         .populate('referenceId', 'name email rollNo');
 
-
         if (!approvedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
@@ -249,7 +302,7 @@ const approveRequest = async (req, res) => {
             request: approvedRequest,
         });
     } catch (err) {
-        console.error('Error in :', err);
+        console.error('Error in approveRequest:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
@@ -330,6 +383,36 @@ const fetchUserRequests = async (req, res) => {
     }
 };
 
+const getUserRequests = async (req, res) => {
+    try {
+        const { userid } = req.body;
+        console.log(userid);
+        //Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(userid)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        //Fetch request by ID and populate user references
+        const requests = await Requests.find({ userId: userid })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        if (!requests) {
+            return res.status(404).json({ message: 'No Request found' });
+        }
+
+        //Send request details
+        return res.status(200).json({
+            status: 200,
+            message: 'Requests fetched successfully',
+            requests: requests
+        });
+    } catch (err) {
+        console.error('Error in getUserRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 const fetchRefRequests = async (req, res) => {
     try {
         const { id: refId } = req.params;
@@ -360,6 +443,36 @@ const fetchRefRequests = async (req, res) => {
     }
 };
 
+// const getRefRequests = async (req, res) => {
+//     try {
+//         const { refId } = req.body;
+//         console.log(refId);
+//         //Validate ID format
+//         if (!mongoose.Types.ObjectId.isValid(refId)) {
+//             return res.status(400).json({ message: 'Invalid request ID' });
+//         }
+
+//         //Fetch request by ID and populate user references
+//         const requests = await Requests.find({ referenceId: refId })
+//             .populate('userId', 'name email rollNo')
+//             .populate('referenceId', 'name email rollNo');
+
+//         if (!requests) {
+//             return res.status(404).json({ message: 'No Request found' });
+//         }
+
+//         //Send request details
+//         return res.status(200).json({
+//             status: 200,
+//             message: 'Requests fetched successfully',
+//             requests: requests
+//         });
+//     } catch (err) {
+//         console.error('Error in getRefRequest:', err);
+//         return res.status(500).json({ message: 'Server error' });
+//     }
+// };
+
 const fetchRequestByStatus = async (req, res) => {
     try {
         const { status } = req.query;
@@ -389,4 +502,4 @@ const fetchRequestByStatus = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus };
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests};

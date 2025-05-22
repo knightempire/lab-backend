@@ -3,6 +3,12 @@ const moment = require("moment-timezone");
 
 const reIssuedSchema = new mongoose.Schema(
     {
+        reIssuedId: {
+            type: String,
+            required: true,
+            unique: true
+        },
+        
         requestId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Requests",
@@ -12,6 +18,16 @@ const reIssuedSchema = new mongoose.Schema(
         requestedDays: {
             type: Number,
             required: true
+        },
+
+        requestDescription: {
+            type: String,
+            default: null
+        },
+
+        adminReturnMessage: {
+            type: String,
+            default: null
         },
 
         approvedDate: {

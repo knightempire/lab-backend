@@ -78,6 +78,7 @@ const loginUser = async (req, res) => {
 
 
     const userData = {
+      userid: user._id,
       email: user.email,
       name: user.name,
       isActive: user.isActive,
@@ -231,11 +232,14 @@ const registerUser = async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10); 
       console.log('Password hashed successfully');
   
+    const formattedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    console.log('Formatted name:', formattedName);
+    
       console.log('Creating new user with email:', email);
       const newUser = new User({
         email,
         password: hashedPassword,
-        name,
+         name: formattedName,
         rollNo,  
         phoneNo, 
         isFaculty,
@@ -352,3 +356,4 @@ const registerUser = async (req, res) => {
 
   
 module.exports = { loginUser, verifyToken , registerUser,createuserandPassword ,forgotPassword,resetPassword, verifyMainToken  };
+  
