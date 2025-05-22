@@ -102,13 +102,6 @@ const addRequest = async (req, res) => {
             requestedProducts
         };
 
-        if (requestDate) requestData.requestDate = requestDate;
-        if (issued) requestData.issued = issued;
-        if (issuedDate) requestData.issuedDate = issuedDate;
-        if (adminReturnMessage) requestData.adminReturnMessage = adminReturnMessage;
-        if (isAllReturned !== undefined) requestData.isAllReturned = isAllReturned;
-        if (requestStatus) requestData.requestStatus = requestStatus;
-
         // Create a new request instance
         const newRequest = new Requests(requestData);
 
