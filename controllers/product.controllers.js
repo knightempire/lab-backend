@@ -22,7 +22,7 @@ const addProduct = async (req, res) => {
             product_name: { $regex: new RegExp('^' + product_name + '$', 'i') }
         });
         if (existingProduct) {
-            console.log('Product already exists:', naproduct_nameme);
+            console.log('Product already exists:', product_nameme);
             return res.status(400).json({ message: 'Product already exists' });
         }
         //Create a new product instance
