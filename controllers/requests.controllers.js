@@ -250,7 +250,7 @@ const approveRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const { issued, adminReturnMessage, adminApprovedDays } = req.body;
+        const { issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
@@ -275,7 +275,7 @@ const approveRequest = async (req, res) => {
             issuedDate: moment.tz("Asia/Kolkata").toDate(),
             requestStatus: 'approved',
             adminApprovedDays: adminApprovedDays,
-            returnDate: moment.tz("Asia/Kolkata").add(adminApprovedDays, 'days').utc().toDate()
+            scheduledCollectionDate: moment.tz(scheduledCollectionDate, "Asia/Kolkata").toDate()
         };
 
         if (adminReturnMessage) {
@@ -502,4 +502,34 @@ const fetchRequestByStatus = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests};
+const collectProducts = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        const updatedRequest = await Requests.findByIdAndUpdate(id, {
+                $set: {collectedDate: moment.tz("Asia/Kolkata").toDate()}
+            }, { new: true, runValidators: true })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request updated successfully',
+            request: updatedRequest,
+        });
+    } catch (err) {
+        console.error('Error in collectProducts:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts };
