@@ -214,16 +214,15 @@ const fetchAllRequests = async (req, res) => {
 const fetchRequest = async (req, res) => {
     try {
         const { id } = req.params;
-
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
+        
+   
 
         //Fetch request by ID and populate user references
-        const request = await Requests.findById(id)
+        const request = await Requests.findOne({ requestId: id })
             .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo');
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name')  
+             .populate('issued.issuedProductId', 'product_name'); 
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
