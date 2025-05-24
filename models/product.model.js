@@ -23,6 +23,11 @@ const productSchema = new mongoose.Schema(
             required: true
         },
 
+        yetToGive: {
+            type: Number,
+            default: 0
+        },
+
         isDisplay: {
             type: Boolean,
             default: true,
