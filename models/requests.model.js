@@ -122,7 +122,7 @@ const requestSchema = new mongoose.Schema(
         },
 
         scheduledCollectionDate: {
-            type: Date,
+            type: String,
             default: null
         },
 
@@ -148,7 +148,7 @@ const requestSchema = new mongoose.Schema(
 
         requestStatus: {
             type: String,
-            enum: ["approved", "pending", "rejected", "returned", "closed"],
+            enum: ["approved", "pending", "rejected", "returned", "closed", "deleted"],
             default: "pending"
         }
     }
