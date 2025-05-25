@@ -252,7 +252,7 @@ const fetchRequest = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const request = await Requests.findOne({ requestId: id })
-            .populate('userId', 'name email rollNo')
+            .populate('userId', 'name email rollNo phoneNo')
             .populate('referenceId', 'name email rollNo')
             .populate('requestedProducts.productId', 'product_name')  
              .populate('issued.issuedProductId', 'product_name'); 
