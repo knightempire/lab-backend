@@ -221,7 +221,7 @@ const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('userId', 'name email rollNo')
+            .populate('userId', 'name email rollNo phoneNo')
             .populate('referenceId', 'name email rollNo');
 
         //No Request to display
