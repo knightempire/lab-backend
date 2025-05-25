@@ -217,6 +217,60 @@ const updateRequest = async (req, res) => {
     }
 };
 
+//withput issued
+const updateProductRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(req.body)
+        const { issued } = req.body;
+        console.log(issued);
+        // Validate issued array    
+        if (!Array.isArray(issued) || issued.length === 0) {
+            return res.status(400).json({ message: 'Issued must be a non-empty array' });
+        }
+
+        for (const item of issued) {
+            if (
+                !item.issuedProductId ||
+                !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                typeof item.issuedQuantity !== 'number' ||
+                item.issuedQuantity < 1
+            ) {
+                return res.status(400).json({
+                    message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
+                });
+            }
+        }
+
+        // Find the request using requestId field
+        const request = await Requests.findOne({ requestId: id });
+
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        // Update only the issued field
+        request.issued = issued;
+        await request.save();
+
+        // Populate necessary fields after update
+        const populatedRequest = await Requests.findById(request._id)
+            .populate('userId', 'name email rollNo');
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Issued items updated successfully',
+            request: populatedRequest,
+        });
+    } catch (err) {
+        console.error('Error in updateProductRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+
 const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
@@ -589,4 +643,4 @@ const collectProducts = async (req, res) => {
     }
 }
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts };
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest };
