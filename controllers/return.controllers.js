@@ -22,7 +22,7 @@ const returnProducts = async (req, res) => {
         }
 
         // Find the product by name
-        const product = await Products.findOne({ name: productName });
+        const product = await Products.findOne({ product_name: productName });
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }

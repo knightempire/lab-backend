@@ -7,7 +7,7 @@ const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        //Validate ID format
+        // Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
@@ -15,8 +15,15 @@ const updateUser = async (req, res) => {
             });
         }
 
-        const fields = ['name', 'email', 'rollNo', 'phoneNo'];
+        const fields = ['userName', 'userPhoneNo'];
         const updates = {};
+
+        if (Object.keys(req.body).length === 6) {
+            return res.status(400).json({
+                status: 400,
+                message: 'No fields provided to update',
+            });
+        }
 
         for (let i of fields) {
             if (req.body[i] !== undefined) {
@@ -36,7 +43,7 @@ const updateUser = async (req, res) => {
             user: updatedUser,
         });
     } catch (err) {
-        console.error('Error in updateUsers:', err);
+        console.error('Error in updateUser:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 }
