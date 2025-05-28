@@ -5,7 +5,7 @@ const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveReques
 const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 
 request.post('/add', tokenValidator, addRequest);
-request.put('/update/:id', tokenValidator, updateRequest);
+request.put('/update/:id', admintokenValidator, updateRequest);
 request.get('/get', admintokenValidator, fetchAllRequests);
 request.get('/user-get/:id', admintokenValidator, fetchUserRequests);
 request.get('/ref-get/:id', admintokenValidator, fetchRefRequests);
