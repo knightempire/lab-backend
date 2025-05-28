@@ -15,7 +15,7 @@ const updateUser = async (req, res) => {
             });
         }
 
-        const fields = ['user_name', 'user_rollNo', 'user_phoneNo'];
+        const fields = ['userName', 'userPhoneNo'];
         const updates = {};
 
         if (Object.keys(req.body).length === 6) {
@@ -43,13 +43,6 @@ const updateUser = async (req, res) => {
             user: updatedUser,
         });
     } catch (err) {
-        // Handle duplicate key error for rollNo
-        if (err.code === 11000 && err.keyPattern && err.keyPattern.rollNo) {
-            return res.status(409).json({
-                status: 409,
-                message: 'Roll number already exists. Use a unique roll number.',
-            });
-        }
         console.error('Error in updateUser:', err);
         return res.status(500).json({ message: 'Server error' });
     }
