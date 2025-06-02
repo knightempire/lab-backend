@@ -1,7 +1,7 @@
 // routes/users.js
 const express = require('express');
 const users = express.Router(); 
-const { fetchAllUsers, adminFetchUser, adminUpdateUser } = require('../controllers/admin/users.controllers');
+const { fetchAllUsers, adminFetchUser, adminUpdateUser } = require('../controllers/admin/profile.controllers.js');
 const { updateUser, fetchUser } = require('../controllers/profile.controllers');
 const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 
