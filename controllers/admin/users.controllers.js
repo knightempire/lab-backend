@@ -85,22 +85,22 @@ const fetchAllUsers = async (req, res) => {
 //Function to display a user
 const adminFetchUser = async (req, res) => {
     try {
-        const { rollno } = req.params;
+        const { rollNo } = req.params;
 
-        // Validate if rollno is provided (optional)
-        if (!rollno) {
+        // Validate if rollNo is provided (optional)
+        if (!rollNo) {
             return res.status(400).json({
                 status: 400,
                 message: 'Roll number is required.',
             });
         }
 
-        // Fetch User by rollno
-        const user = await Users.findOne({ rollno });
+        // Fetch User by rollNo
+        const user = await Users.findOne({ rollNo });
 
         // User not found
         if (!user) {
-            return res.status(404).json({ message: `User with rollno: ${rollno} doesn't exist.` });
+            return res.status(404).json({ message: `User with rollNo: ${rollNo} doesn't exist.` });
         }
 
         // Send the user details

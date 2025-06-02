@@ -7,7 +7,7 @@ const { admintokenValidator, tokenValidator } = require('../middleware/auth/toke
 users.put('/update/:id', tokenValidator, updateUser);
 users.get('/get', admintokenValidator, fetchAllUsers);
 users.get('/get-user', tokenValidator, fetchUser);
-users.get('/get/:rollno', admintokenValidator, adminFetchUser);
+users.get('/get/:rollNo', admintokenValidator, adminFetchUser);
 
 
 module.exports = users;
