@@ -54,9 +54,7 @@ const updateDamaged = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const updatedDamaged = await Damaged.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
-            .populate('requestId', 'userId issued')
-            .populate('productId', 'name');
+        const updatedDamaged = await Damaged.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
 
         if (!updatedDamaged) {
             return res.status(404).json({ message: `Damaged with ID: ${id} doesn't exist.` });
@@ -76,9 +74,7 @@ const updateDamaged = async (req, res) => {
 const fetchDamaged = async (req, res) => {
     try {
         //Fetch all damaged products
-        const damagedProducts = await Damaged.find()
-            .populate('requestId', 'userId issued')
-            .populate('productId', 'name');
+        const damagedProducts = await Damaged.find();
 
         //No damaged product to display
         if (!damagedProducts.length) {
