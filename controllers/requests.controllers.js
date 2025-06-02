@@ -1,6 +1,7 @@
 //controllers/requests.controllers.js
 const Requests = require('../models/requests.model');
 const Users = require('../models/user.model');
+const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 
@@ -131,12 +132,16 @@ const updateRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const fields = [
-            'description',
-            'requestedDays',
-            'requestedProducts'
-        ];
+        const request = await Requests.findById(id);
+        if (!request) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
 
+        if (request.collectedDate !== null) {
+            return res.status(400).json({ message: 'The products have been collected.' });
+        }
+
+        const fields = ['issued', 'adminApprovedDays', 'scheduledCollectionDate'];
         const updates = {};
         for (let i of fields) {
             if (req.body[i] !== undefined) {
@@ -144,30 +149,58 @@ const updateRequest = async (req, res) => {
             }
         }
 
-        // Validate requestedProducts if present
-        if (updates.requestedProducts) {
-            if (!Array.isArray(updates.requestedProducts) || updates.requestedProducts.length === 0) {
-                return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+        if (updates.issued) {
+            if (!Array.isArray(updates.issued) || updates.issued.length === 0) {
+                return res.status(400).json({ message: 'issued must be a non-empty array' });
             }
-            for (const prod of updates.requestedProducts) {
+            for (const item of updates.issued) {
                 if (
-                    !prod.productId ||
-                    !mongoose.Types.ObjectId.isValid(prod.productId) ||
-                    typeof prod.quantity !== 'number' ||
-                    prod.quantity < 1
+                    !item.issuedProductId ||
+                    !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                    typeof item.issuedQuantity !== 'number' ||
+                    item.issuedQuantity < 1
                 ) {
                     return res.status(400).json({
-                        message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                        message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
                     });
                 }
             }
+
+            const oldIssued = {};
+            if (Array.isArray(request.issued)) {
+                for (const item of request.issued) {
+                    oldIssued[item.issuedProductId.toString()] = item.issuedQuantity;
+                }
+            }
+            
+            for (const item of updates.issued) {
+                const productId = item.issuedProductId.toString();
+                const oldQuantity = oldIssued[productId] || 0;
+                const diff = item.issuedQuantity - oldQuantity;
+                if (diff !== 0) {
+                    await Products.findByIdAndUpdate(
+                        productId,
+                        { $inc: { yetToGive: diff } }
+                    );
+                }
+                delete oldIssued[productId];
+            }
+            
+            for (const removedProdId in oldIssued) {
+                await Products.findByIdAndUpdate(
+                    removedProdId,
+                    { $inc: { yetToGive: -oldIssued[removedProdId] } }
+                );
+            }
         }
 
-        const updatedRequest = await Requests.findByIdAndUpdate(id, {
-                $set: updates
-            }, { new: true, runValidators: true })
-            .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo');
+        const updatedRequest = await Requests.findByIdAndUpdate(
+            id,
+            { $set: updates },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
 
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
@@ -184,11 +217,65 @@ const updateRequest = async (req, res) => {
     }
 };
 
+//withput issued
+const updateProductRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(req.body)
+        const { issued } = req.body;
+        console.log(issued);
+        // Validate issued array    
+        if (!Array.isArray(issued) || issued.length === 0) {
+            return res.status(400).json({ message: 'Issued must be a non-empty array' });
+        }
+
+        for (const item of issued) {
+            if (
+                !item.issuedProductId ||
+                !mongoose.Types.ObjectId.isValid(item.issuedProductId) ||
+                typeof item.issuedQuantity !== 'number' ||
+                item.issuedQuantity < 1
+            ) {
+                return res.status(400).json({
+                    message: 'Each issued item must have a valid issuedProductId and a positive issuedQuantity'
+                });
+            }
+        }
+
+        // Find the request using requestId field
+        const request = await Requests.findOne({ requestId: id });
+
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        // Update only the issued field
+        request.issued = issued;
+        await request.save();
+
+        // Populate necessary fields after update
+        const populatedRequest = await Requests.findById(request._id)
+            .populate('userId', 'name email rollNo');
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Issued items updated successfully',
+            request: populatedRequest,
+        });
+    } catch (err) {
+        console.error('Error in updateProductRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+
 const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('userId', 'name email rollNo')
+            .populate('userId', 'name email rollNo phoneNo')
             .populate('referenceId', 'name email rollNo');
 
         //No Request to display
@@ -214,16 +301,15 @@ const fetchAllRequests = async (req, res) => {
 const fetchRequest = async (req, res) => {
     try {
         const { id } = req.params;
-
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
+        
+   
 
         //Fetch request by ID and populate user references
-        const request = await Requests.findById(id)
-            .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo');
+        const request = await Requests.findOne({ requestId: id })
+            .populate('userId', 'name email rollNo phoneNo')
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name')  
+             .populate('issued.issuedProductId', 'product_name'); 
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
@@ -250,7 +336,7 @@ const approveRequest = async (req, res) => {
             return res.status(400).json({ message: 'Invalid request ID' });
         }
 
-        const { issued, adminReturnMessage, adminApprovedDays } = req.body;
+        const { issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
@@ -270,12 +356,19 @@ const approveRequest = async (req, res) => {
             }
         }
 
+        for (const item of issued) {
+            await Products.findByIdAndUpdate(
+                item.issuedProductId,
+                { $inc: { yetToGive: item.issuedQuantity } }
+            );
+        }
+        
         const updateData = {
             issued,
             issuedDate: moment.tz("Asia/Kolkata").toDate(),
             requestStatus: 'approved',
             adminApprovedDays: adminApprovedDays,
-            returnDate: moment.tz("Asia/Kolkata").add(adminApprovedDays, 'days').utc().toDate()
+            scheduledCollectionDate: scheduledCollectionDate
         };
 
         if (adminReturnMessage) {
@@ -502,4 +595,52 @@ const fetchRequestByStatus = async (req, res) => {
     }
 };
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests};
+const collectProducts = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid request ID' });
+        }
+
+        // Fetch the request to get issued products
+        const request = await Requests.findById(id);
+        if (!request) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        for (const item of request.issued) {
+            await Products.findByIdAndUpdate(
+                item.issuedProductId,
+                {
+                    $inc: {
+                        yetToGive: -item.issuedQuantity,
+                        inStock: -item.issuedQuantity
+                    }
+                }
+            );
+        }
+
+        const updatedRequest = await Requests.findByIdAndUpdate(id, {
+                $set: {collectedDate: moment.tz("Asia/Kolkata").toDate()}
+            }, { new: true, runValidators: true })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request updated successfully',
+            request: updatedRequest,
+        });
+    } catch (err) {
+        console.error('Error in collectProducts:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
+module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest };

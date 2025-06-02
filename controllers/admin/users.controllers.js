@@ -7,7 +7,7 @@ const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        //Validate ID format
+        // Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 400,
@@ -15,8 +15,15 @@ const updateUser = async (req, res) => {
             });
         }
 
-        const fields = ['name', 'email', 'rollNo', 'phoneNo'];
+        const fields = ['userName', 'userPhoneNo'];
         const updates = {};
+
+        if (Object.keys(req.body).length === 6) {
+            return res.status(400).json({
+                status: 400,
+                message: 'No fields provided to update',
+            });
+        }
 
         for (let i of fields) {
             if (req.body[i] !== undefined) {
@@ -36,7 +43,7 @@ const updateUser = async (req, res) => {
             user: updatedUser,
         });
     } catch (err) {
-        console.error('Error in updateUsers:', err);
+        console.error('Error in updateUser:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 }
@@ -76,27 +83,61 @@ const fetchAllUsers = async (req, res) => {
 }
 
 //Function to display a user
+const adminFetchUser = async (req, res) => {
+    try {
+        const { rollno } = req.params;
+
+        // Validate if rollno is provided (optional)
+        if (!rollno) {
+            return res.status(400).json({
+                status: 400,
+                message: 'Roll number is required.',
+            });
+        }
+
+        // Fetch User by rollno
+        const user = await Users.findOne({ rollno });
+
+        // User not found
+        if (!user) {
+            return res.status(404).json({ message: `User with rollno: ${rollno} doesn't exist.` });
+        }
+
+        // Send the user details
+        return res.status(200).json({
+            status: 200,
+            message: 'User fetched successfully',
+            user: user,
+        });
+    } catch (err) {
+        console.error('Error in fetchUser:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
 const fetchUser = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { userid } = req.body;
 
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(userid)) {
             return res.status(400).json({
                 status: 400,
                 message: 'Invalid user ID format',
             });
         }
 
-        //Fetch User
-        const user = await Users.findById(id);
+        // Fetch User
+        const user = await Users.findById(userid);
 
-        //user not found
+        // User not found
         if (!user) {
-            return res.status(404).json({message: `User with Id: ${id} doesn't exist.`});
+            return res.status(404).json({ message: `User with Id: ${userid} doesn't exist.` });
         }
 
-        //Send the user details
+        // Send the user details
         return res.status(200).json({
             status: 200,
             message: 'User fetched successfully',
@@ -108,4 +149,4 @@ const fetchUser = async (req, res) => {
     }
 }
 
-module.exports = { updateUser, fetchUser, fetchAllUsers };
+module.exports = { updateUser, adminFetchUser, fetchAllUsers, fetchUser };

@@ -121,6 +121,16 @@ const requestSchema = new mongoose.Schema(
             default: null
         },
 
+        scheduledCollectionDate: {
+            type: String,
+            default: null
+        },
+
+        collectedDate: {
+            type: Date,
+            default: null
+        },
+
         isDamaged: {
             type: Boolean,
             default: false
@@ -138,7 +148,7 @@ const requestSchema = new mongoose.Schema(
 
         requestStatus: {
             type: String,
-            enum: ["approved", "pending", "rejected"],
+            enum: ["approved", "pending", "rejected", "returned", "closed", "deleted"],
             default: "pending"
         }
     }

@@ -37,12 +37,7 @@ const addProduct = async (req, res) => {
         return res.status(201).json({
             status: 201,
             message: 'Product created successfully',
-            component: {
-                product_name: newProduct.product_name,
-                quantity: newProduct.quantity,
-                damagedQuantity: newProduct.damagedQuantity,
-                inStock: newProduct.inStock,
-            }
+            component: newProduct
         });
     } catch (err) {
         console.error('Error in addProduct:', err);
@@ -145,11 +140,7 @@ const fetchAllProducts = async (req, res) => {
             status: 200,
             message: 'Products fetched successfully',
             products: products.map(product => ({
-                id: product._id,
-                product_name: product.product_name,
-                quantity: product.quantity,
-                damagedQuantity: product.damagedQuantity,
-                inStock: product.inStock
+                product
             })),
         });
     } catch (err) {
