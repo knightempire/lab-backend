@@ -10,6 +10,7 @@ users.get('/get', admintokenValidator, fetchAllUsers);
 users.get('/get/:rollNo', admintokenValidator, adminFetchUser);
 users.put('/update', tokenValidator, updateUser);
 users.get('/get-user', tokenValidator, fetchUser);
+users.get('/get/:rollNo', admintokenValidator, adminFetchUser);
 
 
 module.exports = users;
