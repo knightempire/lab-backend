@@ -85,25 +85,25 @@ const fetchAllUsers = async (req, res) => {
 //Function to display a user
 const adminFetchUser = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { rollno } = req.params;
 
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        // Validate if rollno is provided (optional)
+        if (!rollno) {
             return res.status(400).json({
                 status: 400,
-                message: 'Invalid user ID format',
+                message: 'Roll number is required.',
             });
         }
 
-        //Fetch User
-        const user = await Users.findById(id);
+        // Fetch User by rollno
+        const user = await Users.findOne({ rollno });
 
-        //user not found
+        // User not found
         if (!user) {
-            return res.status(404).json({message: `User with Id: ${id} doesn't exist.`});
+            return res.status(404).json({ message: `User with rollno: ${rollno} doesn't exist.` });
         }
 
-        //Send the user details
+        // Send the user details
         return res.status(200).json({
             status: 200,
             message: 'User fetched successfully',
@@ -113,7 +113,9 @@ const adminFetchUser = async (req, res) => {
         console.error('Error in fetchUser:', err);
         return res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
+
 
 const fetchUser = async (req, res) => {
     try {
