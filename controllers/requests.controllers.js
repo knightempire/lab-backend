@@ -329,13 +329,7 @@ const fetchRequest = async (req, res) => {
 
 const approveRequest = async (req, res) => {
     try {
-        const { id } = req.params;
-
-        // Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
-
+        const { id } = req.params; // Use 'id' from params
         const { issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
@@ -356,30 +350,30 @@ const approveRequest = async (req, res) => {
             }
         }
 
+        // Update product stock
         for (const item of issued) {
             await Products.findByIdAndUpdate(
                 item.issuedProductId,
                 { $inc: { yetToGive: item.issuedQuantity } }
             );
         }
-        
+
         const updateData = {
             issued,
             issuedDate: moment.tz("Asia/Kolkata").toDate(),
             requestStatus: 'approved',
-            adminApprovedDays: adminApprovedDays,
-            scheduledCollectionDate: scheduledCollectionDate
+            adminApprovedDays,
+            scheduledCollectionDate
         };
 
         if (adminReturnMessage) {
             updateData.adminReturnMessage = adminReturnMessage;
         }
 
-        const approvedRequest = await Requests.findByIdAndUpdate(
-            id,
-            {
-                $set: updateData
-            },
+        // Find by 'requestId' and update the request
+        const approvedRequest = await Requests.findOneAndUpdate(
+            { requestId: id }, // Use 'requestId' in the query
+            { $set: updateData },
             { new: true, runValidators: true }
         )
         .populate('userId', 'name email rollNo')
@@ -389,6 +383,7 @@ const approveRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
+        // Send success response with approved request details
         return res.status(200).json({
             status: 200,
             message: 'Request approved successfully',
@@ -402,12 +397,7 @@ const approveRequest = async (req, res) => {
 
 const rejectRequest = async (req, res) => {
     try {
-        const { id } = req.params;
-
-        // Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
+        const { id } = req.params; // Use 'id' from params
 
         const { adminReturnMessage } = req.body;
 
@@ -421,11 +411,10 @@ const rejectRequest = async (req, res) => {
             updateData.adminReturnMessage = adminReturnMessage;
         }
 
-        const updatedRequest = await Requests.findByIdAndUpdate(
-            id,
-            {
-                $set: updateData,
-            },
+        // Find by 'requestId' and update the request
+        const updatedRequest = await Requests.findOneAndUpdate(
+            { requestId: id }, // Use 'requestId' in the query
+            { $set: updateData },
             { new: true, runValidators: true }
         )
         .populate('userId', 'name email rollNo')
@@ -435,6 +424,7 @@ const rejectRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
+        // Send success response with updated request details
         return res.status(200).json({
             status: 200,
             message: 'Request rejected successfully',
@@ -445,6 +435,7 @@ const rejectRequest = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 const fetchUserRequests = async (req, res) => {
     try {
