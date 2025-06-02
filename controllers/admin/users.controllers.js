@@ -83,7 +83,7 @@ const fetchAllUsers = async (req, res) => {
 }
 
 //Function to display a user
-const fetchUser = async (req, res) => {
+const adminFetchUser = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -115,4 +115,36 @@ const fetchUser = async (req, res) => {
     }
 }
 
-module.exports = { updateUser, fetchUser, fetchAllUsers };
+const fetchUser = async (req, res) => {
+    try {
+        const { userid } = req.body;
+
+        // Validate ID format
+        if (!mongoose.Types.ObjectId.isValid(userid)) {
+            return res.status(400).json({
+                status: 400,
+                message: 'Invalid user ID format',
+            });
+        }
+
+        // Fetch User
+        const user = await Users.findById(userid);
+
+        // User not found
+        if (!user) {
+            return res.status(404).json({ message: `User with Id: ${userid} doesn't exist.` });
+        }
+
+        // Send the user details
+        return res.status(200).json({
+            status: 200,
+            message: 'User fetched successfully',
+            user: user,
+        });
+    } catch (err) {
+        console.error('Error in fetchUser:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
+module.exports = { updateUser, adminFetchUser, fetchAllUsers, fetchUser };
