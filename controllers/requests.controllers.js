@@ -590,13 +590,7 @@ const collectProducts = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
-
-        // Fetch the request to get issued products
-        const request = await Requests.findById(id);
+        const request = await Requests.findOne({ requestId: id });
         if (!request) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
@@ -613,25 +607,25 @@ const collectProducts = async (req, res) => {
             );
         }
 
-        const updatedRequest = await Requests.findByIdAndUpdate(id, {
-                $set: {collectedDate: moment.tz("Asia/Kolkata").toDate()}
-            }, { new: true, runValidators: true })
-            .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo');
-
-        if (!updatedRequest) {
-            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
-        }
+        const updatedRequest = await Requests.findOneAndUpdate(
+            { requestId: id },
+            { $set: { collectedDate: moment.tz("Asia/Kolkata").toDate() } },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
 
         return res.status(200).json({
             status: 200,
             message: 'Request updated successfully',
             request: updatedRequest,
         });
+
     } catch (err) {
         console.error('Error in collectProducts:', err);
         return res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
 
 module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest };
