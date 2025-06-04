@@ -92,6 +92,7 @@ const bulkAddProducts = async (req, res) => {
 //Function to update product
 const updateProduct = async (req, res) => {
     try {
+        console.log('Updating product with ID:', req.params.id);
         const { id } = req.params;
         //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(id)) {
