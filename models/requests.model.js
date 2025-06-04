@@ -136,9 +136,9 @@ const requestSchema = new mongoose.Schema(
             default: false
         },
 
-        isAllReturned: {
-            type: Boolean,
-            default: false
+        AllReturnedDate: {
+            type: Date,
+            default: null
         },
 
         returnedDate: {

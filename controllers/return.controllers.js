@@ -2,6 +2,7 @@
 const Requests = require('../models/requests.model');
 const mongoose = require('mongoose');
 const Products = require('../models/product.model');
+const moment = require('moment-timezone');
 
 const returnProducts = async (req, res) => {
     try {
@@ -61,12 +62,26 @@ const returnProducts = async (req, res) => {
             replacedQuantity: replacedQuantity || 0
         });
 
+        let status = 201;
+        for (const item of request.issued) {
+            const returned = item.return.reduce((sum, r) => sum + (r.returnedQuantity - r.replacedQuantity), 0);
+            if (returned < item.issuedQuantity) {
+                status = 200;
+                break;
+            }
+        }
+
+        if (status === 201) {
+            request.requestStatus = 'returned';
+            request.AllReturnedDate = moment.tz("Asia/Kolkata").toDate();
+        }
+
         await request.save();
 
         // Populate product name for response
         const populatedRequest = await Requests.findOne({ requestId }).populate('issued.issuedProductId', 'name');
 
-        res.status(200).json({
+        res.status(status).json({
             status: 200,
             message: 'Product returned successfully',
             request: populatedRequest
