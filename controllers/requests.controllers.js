@@ -128,11 +128,7 @@ const updateRequest = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
-        }
-
-        const request = await Requests.findById(id);
+        const request = await Requests.findOne({ requestId: id });
         if (!request) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
@@ -172,7 +168,7 @@ const updateRequest = async (req, res) => {
                     oldIssued[item.issuedProductId.toString()] = item.issuedQuantity;
                 }
             }
-            
+
             for (const item of updates.issued) {
                 const productId = item.issuedProductId.toString();
                 const oldQuantity = oldIssued[productId] || 0;
@@ -185,7 +181,7 @@ const updateRequest = async (req, res) => {
                 }
                 delete oldIssued[productId];
             }
-            
+
             for (const removedProdId in oldIssued) {
                 await Products.findByIdAndUpdate(
                     removedProdId,
@@ -194,8 +190,8 @@ const updateRequest = async (req, res) => {
             }
         }
 
-        const updatedRequest = await Requests.findByIdAndUpdate(
-            id,
+        const updatedRequest = await Requests.findOneAndUpdate(
+            { requestId: id },
             { $set: updates },
             { new: true, runValidators: true }
         )
@@ -217,13 +213,13 @@ const updateRequest = async (req, res) => {
     }
 };
 
+
 //withput issued
 const updateProductRequest = async (req, res) => {
     try {
         const { id } = req.params;
-        console.log(req.body)
-        const { issued } = req.body;
-        console.log(issued);
+        const { issued, adminApprovedDays } = req.body;
+        console.log("updateProductRequest", id, issued, adminApprovedDays);
         // Validate issued array    
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
@@ -242,15 +238,28 @@ const updateProductRequest = async (req, res) => {
             }
         }
 
-        // Find the request using requestId field
+        // Optional: Validate adminApprovedDays
+        if (adminApprovedDays !== undefined) {
+            if (typeof adminApprovedDays !== 'number' || adminApprovedDays < 0) {
+                return res.status(400).json({
+                    message: 'adminApprovedDays must be a non-negative number'
+                });
+            }
+        }
+
+        // Find the request using requestId
         const request = await Requests.findOne({ requestId: id });
 
         if (!request) {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
 
-        // Update only the issued field
+        // Update issued and adminApprovedDays (if provided)
         request.issued = issued;
+        if (adminApprovedDays !== undefined) {
+            request.adminApprovedDays = adminApprovedDays;
+        }
+
         await request.save();
 
         // Populate necessary fields after update
@@ -259,7 +268,7 @@ const updateProductRequest = async (req, res) => {
 
         return res.status(200).json({
             status: 200,
-            message: 'Issued items updated successfully',
+            message: 'Issued items and adminApprovedDays updated successfully',
             request: populatedRequest,
         });
     } catch (err) {
@@ -630,10 +639,12 @@ const collectProducts = async (req, res) => {
             message: 'Request updated successfully',
             request: updatedRequest,
         });
+
     } catch (err) {
         console.error('Error in collectProducts:', err);
         return res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
 
 module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest };
