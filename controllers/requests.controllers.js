@@ -277,9 +277,6 @@ const updateProductRequest = async (req, res) => {
     }
 };
 
-
-
-
 const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
