@@ -5,6 +5,13 @@ const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 
+const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+
+// Helper to validate requestId
+function validateRequestId(id) {
+    return typeof id === 'string' && requestIdRegex.test(id);
+}
+
 const generateRequestId = async (isFaculty) => {
     const currentYear = new Date().getFullYear();
 
@@ -128,6 +135,10 @@ const updateRequest = async (req, res) => {
     try {
         const { id } = req.params;
 
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
         const request = await Requests.findOne({ requestId: id });
         if (!request) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
@@ -218,6 +229,9 @@ const updateRequest = async (req, res) => {
 const updateProductRequest = async (req, res) => {
     try {
         const { id } = req.params;
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
         const { issued, adminApprovedDays } = req.body;
         console.log("updateProductRequest", id, issued, adminApprovedDays);
         // Validate issued array    
@@ -307,8 +321,10 @@ const fetchAllRequests = async (req, res) => {
 const fetchRequest = async (req, res) => {
     try {
         const { id } = req.params;
-        
-   
+
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
 
         //Fetch request by ID and populate user references
         const request = await Requests.findOne({ requestId: id })
@@ -335,7 +351,10 @@ const fetchRequest = async (req, res) => {
 
 const approveRequest = async (req, res) => {
     try {
-        const { id } = req.params; // Use 'id' from params
+        const { id } = req.params;
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
         const { issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
 
         if (!Array.isArray(issued) || issued.length === 0) {
@@ -378,7 +397,7 @@ const approveRequest = async (req, res) => {
 
         // Find by 'requestId' and update the request
         const approvedRequest = await Requests.findOneAndUpdate(
-            { requestId: id }, // Use 'requestId' in the query
+            { requestId: id },
             { $set: updateData },
             { new: true, runValidators: true }
         )
@@ -403,8 +422,10 @@ const approveRequest = async (req, res) => {
 
 const rejectRequest = async (req, res) => {
     try {
-        const { id } = req.params; // Use 'id' from params
-
+        const { id } = req.params;
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
         const { adminReturnMessage } = req.body;
 
         const updateData = {
@@ -419,7 +440,7 @@ const rejectRequest = async (req, res) => {
 
         // Find by 'requestId' and update the request
         const updatedRequest = await Requests.findOneAndUpdate(
-            { requestId: id }, // Use 'requestId' in the query
+            { requestId: id },
             { $set: updateData },
             { new: true, runValidators: true }
         )
@@ -442,18 +463,16 @@ const rejectRequest = async (req, res) => {
     }
 };
 
-
 const fetchUserRequests = async (req, res) => {
     try {
-        const { id: userId } = req.params;
+        const { id: rollNo } = req.params;
 
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
+        const user = await Users.findOne({ rollNo: rollNo });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        //Fetch request by ID and populate user references
-        const requests = await Requests.find({ userId: userId })
+        const requests = await Requests.find({ userId: user._id })
             .populate('userId', 'name email rollNo')
             .populate('referenceId', 'name email rollNo');
 
@@ -461,29 +480,27 @@ const fetchUserRequests = async (req, res) => {
             return res.status(404).json({ message: 'No Request found' });
         }
 
-        //Send request details
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
             requests: requests
         });
     } catch (err) {
-        console.error('Error in fetchUserRequest:', err);
+        console.error('Error in fetchUserRequests:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
 const getUserRequests = async (req, res) => {
     try {
-        const { userid } = req.body;
-        console.log(userid);
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(userid)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
+        const { rollNo } = req.body;
+
+        const user = await Users.findOne({ rollNo: rollNo });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        //Fetch request by ID and populate user references
-        const requests = await Requests.find({ userId: userid })
+        const requests = await Requests.find({ userId: user._id })
             .populate('userId', 'name email rollNo')
             .populate('referenceId', 'name email rollNo');
 
@@ -491,14 +508,13 @@ const getUserRequests = async (req, res) => {
             return res.status(404).json({ message: 'No Request found' });
         }
 
-        //Send request details
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
             requests: requests
         });
     } catch (err) {
-        console.error('Error in getUserRequest:', err);
+        console.error('Error in getUserRequests:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
@@ -509,7 +525,7 @@ const fetchRefRequests = async (req, res) => {
 
         //Validate ID format
         if (!mongoose.Types.ObjectId.isValid(refId)) {
-            return res.status(400).json({ message: 'Invalid request ID' });
+            return res.status(400).json({ message: 'Invalid reference ID' });
         }
 
         //Fetch request by ID and populate user references
@@ -596,9 +612,7 @@ const collectProducts = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
-        
-        if (!requestIdRegex.test(id)) {
+        if (!validateRequestId(id)) {
             return res.status(400).json({ message: 'Invalid requestId format.' });
         }
 
@@ -644,4 +658,17 @@ const collectProducts = async (req, res) => {
 };
 
 
-module.exports = { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest };
+module.exports = {
+    addRequest,
+    updateRequest,
+    fetchRequest,
+    fetchAllRequests,
+    approveRequest,
+    rejectRequest,
+    fetchUserRequests,
+    fetchRefRequests,
+    fetchRequestByStatus,
+    getUserRequests,
+    collectProducts,
+    updateProductRequest
+};
