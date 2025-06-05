@@ -277,9 +277,6 @@ const updateProductRequest = async (req, res) => {
     }
 };
 
-
-
-
 const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
@@ -599,9 +596,15 @@ const collectProducts = async (req, res) => {
     try {
         const { id } = req.params;
 
+        const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+        
+        if (!requestIdRegex.test(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
         const request = await Requests.findOne({ requestId: id });
         if (!request) {
-            return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
 
         for (const item of request.issued) {
@@ -623,6 +626,10 @@ const collectProducts = async (req, res) => {
         )
         .populate('userId', 'name email rollNo')
         .populate('referenceId', 'name email rollNo');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
 
         return res.status(200).json({
             status: 200,
