@@ -10,7 +10,7 @@ const reIssuedSchema = new mongoose.Schema(
         },
         
         requestId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: String,
             ref: "Requests",
             required: true
         },
@@ -30,7 +30,7 @@ const reIssuedSchema = new mongoose.Schema(
             default: null
         },
 
-        approvedDate: {
+        reviewedDate: {
             type: Date,
             default: null
         },
@@ -47,7 +47,7 @@ const reIssuedSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["approved", "pending", "rejected"],
+            enum: ["approved", "pending", "rejected", "closed"],
             default: "pending"
         }
     }
