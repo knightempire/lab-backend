@@ -1,26 +1,40 @@
-const mongoose = require('mongoose');
 const ReIssued = require('../models/reIssued.model');
 const Requests = require('../models/requests.model');
+const moment = require('moment-timezone');
+
+const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+
+function validateRequestId(id) {
+    return typeof id === 'string' && requestIdRegex.test(id);
+}
+
+function validateReIssuedId(id) {
+    const reIssuedRegex = /^REQ-[FS]-\d{2}\d{4}-r\d+$/;
+    return typeof id === 'string' && reIssuedRegex.test(id);
+}
 
 const addReIssued = async (req, res) => {
     try {
-        const { requestId, requestedDays, requestDescription } = req.body;
+        const { requestId } = req.params;
+
+        if (!validateRequestId(requestId)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
+        const { requestedDays, requestDescription } = req.body;
 
         if (!requestId || !requestedDays) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(requestId)) {
-            return res.status(400).json({
-                message: 'Invalid request ID format',
-            });
-        }
+        const request = await Requests.findOne({ requestId });
 
-        //generate reIssuedId
-        const request = await Requests.findById(requestId);
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.requestStatus !== 'approved') {
+            return res.status(400).json({ message: 'Request must be approved before reIssuing' });
         }
 
         const requestIdStr = request.requestId;
@@ -40,6 +54,7 @@ const addReIssued = async (req, res) => {
         await newReIssued.save();
 
         request.reIssued.push(newReIssuedId);
+
         await request.save();
 
         return res.status(201).json({
@@ -57,12 +72,15 @@ const updateReIssued = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid reIssued ID' });
+        if (!validateReIssuedId(id)) {
+            return res.status(400).json({ message: 'Invalid reIssuedId format.' });
         }
 
-        const updatedReIssued = await ReIssued.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
-            .populate('requestId', 'userId requestedProducts');
+        const updatedReIssued = await ReIssued.findOneAndUpdate(
+            { reIssuedId: id },
+            req.body,
+            { new: true, runValidators: true }
+        )
 
         if (!updatedReIssued) {
             return res.status(404).json({ message: `reIssued with ID: ${id} doesn't exist.` });
@@ -74,15 +92,14 @@ const updateReIssued = async (req, res) => {
             reIssued: updatedReIssued,
         });
     } catch (err) {
-        console.error('Error in updateReIssued:', error);
+        console.error('Error in updateReIssued:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
 const fetchAllReIssued = async (req, res) => {
     try {
-        const reIssued = await ReIssued.find()
-            .populate('requestId', 'userId requestedProducts');
+        const reIssued = await ReIssued.find();
 
         if (!reIssued.length) {
             return res.status(404).json({
@@ -101,4 +118,120 @@ const fetchAllReIssued = async (req, res) => {
     }
 };
 
-module.exports = { addReIssued, updateReIssued, fetchAllReIssued };
+const fetchReIssued = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateReIssuedId(id)) {
+            return res.status(400).json({ message: 'Invalid reIssuedId format.' });
+        }
+
+        const reIssued = await ReIssued.findOne({ reIssuedId: id });
+
+        if (!reIssued) {
+            return res.status(404).json({ message: `reIssued with ID: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'ReIssued request fetched successfully',
+            reIssued: reIssued,
+        });
+    } catch (error) {
+        console.error('Error in fetchReIssued:', error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const approveReIssued = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateReIssuedId(id)) {
+            return res.status(400).json({ message: 'Invalid reIssuedId format.' });
+        }
+
+        const reIssued = await ReIssued.findOne({ reIssuedId: id });
+
+        if (!reIssued) {
+            return res.status(404).json({ message: `reIssued with ID: ${id} doesn't exist.` });
+        }
+
+        const { adminApprovedDays, adminReturnMessage } = req.body;
+
+        if (!adminApprovedDays || !adminReturnMessage) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        if (reIssued.status !== 'pending') {
+            return res.status(400).json({ message: `ReIssued request already ${reIssued.status}` });
+        }
+
+        if (adminApprovedDays <= 0) {
+            return res.status(400).json({ message: 'Admin approved days must be greater than 0' });
+        }
+
+        reIssued.status = 'approved';
+        reIssued.reviewedDate = moment.tz("Asia/Kolkata").toDate();
+        reIssued.adminApprovedDays = adminApprovedDays;
+        reIssued.adminReturnMessage = adminReturnMessage;
+
+        const request = await Requests.findOne({ requestId: reIssued.requestId });
+
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        request.requestStatus = 'reIssued';
+
+        await request.save();
+
+        await reIssued.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: 'ReIssued approved successfully',
+            reIssued: reIssued,
+        });
+    } catch (error) {
+        console.error('Error in approveReIssued:', error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const rejectReIssued = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateReIssuedId(id)) {
+            return res.status(400).json({ message: 'Invalid reIssuedId format.' });
+        }
+
+        const reIssued = await ReIssued.findOne({ reIssuedId: id });
+
+        if (!reIssued) {
+            return res.status(404).json({ message: `reIssued with ID: ${id} doesn't exist.` });
+        }
+
+        if (reIssued.status !== 'pending') {
+            return res.status(400).json({ message: `ReIssued request already ${reIssued.status}` });
+        }
+
+        reIssued.status = 'rejected';
+        reIssued.reviewedDate = moment.tz("Asia/Kolkata").toDate();
+        reIssued.adminReturnMessage = req.body.adminReturnMessage || 'Request rejected by admin';
+
+        await reIssued.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: 'ReIssued rejected successfully',
+            reIssued: reIssued,
+        });
+    } catch (error) {
+        console.error('Error in rejectReIssued:', error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { addReIssued, updateReIssued, fetchAllReIssued, fetchReIssued, approveReIssued, rejectReIssued };
