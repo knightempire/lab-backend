@@ -426,6 +426,7 @@ const rejectRequest = async (req, res) => {
         if (!validateRequestId(id)) {
             return res.status(400).json({ message: 'Invalid requestId format.' });
         }
+
         const { adminReturnMessage } = req.body;
 
         const updateData = {
@@ -657,6 +658,62 @@ const collectProducts = async (req, res) => {
     }
 };
 
+const closeUncollectedRequests = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
+        const request = await Requests.findOne({ requestId: id });
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        if (request.requestStatus === 'closed') {
+            return res.status(400).json({ message: 'Request is already closed.' });
+        }
+
+        if (request.requestStatus !== 'approved') {
+            return res.status(400).json({ message: 'Request is not in approved status.' });
+        }
+
+        if (request.collectedDate !== null) {
+            return res.status(400).json({ message: 'The products have already been collected.' });
+        }
+
+        for (const item of request.issued) {
+            await Products.findByIdAndUpdate(
+                item.issuedProductId,
+                { $inc: { yetToGive: -item.issuedQuantity } }
+            );
+        }
+
+        const updatedRequest = await Requests.findOneAndUpdate(
+            { requestId: id },
+            { $set: { requestStatus: 'closed' } },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request closed successfully',
+            request: updatedRequest,
+        });
+
+    } catch (err) {
+        console.error('Error in closeUncollectedRequests:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
 
 module.exports = {
     addRequest,
@@ -670,5 +727,6 @@ module.exports = {
     fetchRequestByStatus,
     getUserRequests,
     collectProducts,
-    updateProductRequest
+    updateProductRequest,
+    closeUncollectedRequests
 };
