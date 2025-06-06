@@ -181,8 +181,38 @@ async function updateRowbyReqID(requestId, newValues) {
   });
 }
 
+
+async function isRequestIdExists(requestId) {
+  if (typeof requestId !== 'string') {
+    throw new Error('requestId must be a string');
+  }
+
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: 'v4', auth: client });
+
+  const spreadsheetId = process.env.SPREADSHEET_ID;
+  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:D';
+  const [sheetName] = fullRange.split('!');
+
+  const getResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: fullRange,
+  });
+
+  const rows = getResponse.data.values || [];
+
+  for (const row of rows) {
+    if ((row[0] || '').trim() === requestId.trim()) {
+      return true; // Found matching requestId
+    }
+  }
+
+  return false; // Not found
+}
+
 module.exports = {
   appendRow,
   deleteRowbyReqID,
   updateRowbyReqID,
+  isRequestIdExists
 };
