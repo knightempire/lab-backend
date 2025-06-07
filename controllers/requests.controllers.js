@@ -416,7 +416,7 @@ const approveRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
-        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays.toString() ]);
+        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays]);
 
         // Send success response with approved request details
         return res.status(200).json({
