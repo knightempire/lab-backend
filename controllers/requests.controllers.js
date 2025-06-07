@@ -4,8 +4,9 @@ const Users = require('../models/user.model');
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
-
+const { appendRow } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+const { sendStaffNotifyEmail } = require('../middleware/mail/mail');
 
 // Helper to validate requestId
 function validateRequestId(id) {
@@ -119,6 +120,13 @@ const addRequest = async (req, res) => {
             requestStatus: populatedRequest.requestStatus
         };
 
+    const referenceEmail = populatedRequest.referenceId.email;
+    const referenceName = populatedRequest.referenceId.name;
+    const referenceRollNo = populatedRequest.userId.rollNo;
+    const studentName = populatedRequest.userId.name;
+    const requestID = populatedRequest.requestId;
+    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
+    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
         // Send success response
         return res.status(201).json({
             status: 201,
@@ -407,6 +415,8 @@ const approveRequest = async (req, res) => {
         if (!approvedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
+
+        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays.toString() ]);
 
         // Send success response with approved request details
         return res.status(200).json({
