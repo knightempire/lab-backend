@@ -4,8 +4,9 @@ const Users = require('../models/user.model');
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
-
+const { appendRow } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+const { sendStaffNotifyEmail } = require('../middleware/mail/mail');
 
 // Helper to validate requestId
 function validateRequestId(id) {
@@ -119,6 +120,13 @@ const addRequest = async (req, res) => {
             requestStatus: populatedRequest.requestStatus
         };
 
+    const referenceEmail = populatedRequest.referenceId.email;
+    const referenceName = populatedRequest.referenceId.name;
+    const referenceRollNo = populatedRequest.userId.rollNo;
+    const studentName = populatedRequest.userId.name;
+    const requestID = populatedRequest.requestId;
+    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
+    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
         // Send success response
         return res.status(201).json({
             status: 201,
@@ -408,6 +416,8 @@ const approveRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
+        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays.toString() ]);
+
         // Send success response with approved request details
         return res.status(200).json({
             status: 200,
@@ -426,6 +436,7 @@ const rejectRequest = async (req, res) => {
         if (!validateRequestId(id)) {
             return res.status(400).json({ message: 'Invalid requestId format.' });
         }
+
         const { adminReturnMessage } = req.body;
 
         const updateData = {
@@ -657,6 +668,62 @@ const collectProducts = async (req, res) => {
     }
 };
 
+const closeUncollectedRequests = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
+        const request = await Requests.findOne({ requestId: id });
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        if (request.requestStatus === 'closed') {
+            return res.status(400).json({ message: 'Request is already closed.' });
+        }
+
+        if (request.requestStatus !== 'approved') {
+            return res.status(400).json({ message: 'Request is not in approved status.' });
+        }
+
+        if (request.collectedDate !== null) {
+            return res.status(400).json({ message: 'The products have already been collected.' });
+        }
+
+        for (const item of request.issued) {
+            await Products.findByIdAndUpdate(
+                item.issuedProductId,
+                { $inc: { yetToGive: -item.issuedQuantity } }
+            );
+        }
+
+        const updatedRequest = await Requests.findOneAndUpdate(
+            { requestId: id },
+            { $set: { requestStatus: 'closed' } },
+            { new: true, runValidators: true }
+        )
+        .populate('userId', 'name email rollNo')
+        .populate('referenceId', 'name email rollNo');
+
+        if (!updatedRequest) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Request closed successfully',
+            request: updatedRequest,
+        });
+
+    } catch (err) {
+        console.error('Error in closeUncollectedRequests:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
 
 module.exports = {
     addRequest,
@@ -670,5 +737,6 @@ module.exports = {
     fetchRequestByStatus,
     getUserRequests,
     collectProducts,
-    updateProductRequest
+    updateProductRequest,
+    closeUncollectedRequests
 };

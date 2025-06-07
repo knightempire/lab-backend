@@ -148,7 +148,7 @@ const requestSchema = new mongoose.Schema(
 
         requestStatus: {
             type: String,
-            enum: ["approved", "pending", "rejected", "returned", "closed", "deleted"],
+            enum: ["approved", "pending", "rejected", "returned", "closed", "reIssued"],
             default: "pending"
         }
     }
