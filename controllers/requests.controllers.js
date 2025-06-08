@@ -4,6 +4,7 @@ const Users = require('../models/user.model');
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
+const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
 const { appendRow } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
 const { sendStaffNotifyEmail } = require('../middleware/mail/mail');
@@ -150,6 +151,10 @@ const updateRequest = async (req, res) => {
         const request = await Requests.findOne({ requestId: id });
         if (!request) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
+        }
+
+        if (request.requestStatus !== 'pending') {
+            return res.status(400).json({ message: 'Request is not in pending status.' });
         }
 
         if (request.collectedDate !== null) {
@@ -632,6 +637,10 @@ const collectProducts = async (req, res) => {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
 
+        if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {
+            return res.status(400).json({ message: 'Request is not in approved or reIssued status.' });
+        }
+
         for (const item of request.issued) {
             await Products.findByIdAndUpdate(
                 item.issuedProductId,
@@ -685,8 +694,8 @@ const closeUncollectedRequests = async (req, res) => {
             return res.status(400).json({ message: 'Request is already closed.' });
         }
 
-        if (request.requestStatus !== 'approved') {
-            return res.status(400).json({ message: 'Request is not in approved status.' });
+        if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {
+            return res.status(400).json({ message: 'Request is not in approved or reIssued status.' });
         }
 
         if (request.collectedDate !== null) {
@@ -724,6 +733,105 @@ const closeUncollectedRequests = async (req, res) => {
     }
 }
 
+const remainderMail = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
+        const request = await Requests.findOne({ requestId: id });
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        if (request.collectedDate === null) {
+            return res.status(400).json({ message: 'The products have not been collected yet.' });
+        }
+
+        if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {
+            return res.status(400).json({ message: 'Request is not in approved or reIssued status.' });
+        }
+
+        const issuedDate = moment(request.collectedDate).tz("Asia/Kolkata");
+        const dueDate = issuedDate.clone().add(request.adminApprovedDays, 'days');
+
+        const currentDate = moment.tz("Asia/Kolkata");
+
+        if (currentDate.isAfter(dueDate)) {
+            return res.status(400).json({ message: 'Reminder can only be sent before the due date.' });
+        }
+
+        const user = await Users.findById(request.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await sendUserReminderEmail(user.email, user.name, request.requestId, issuedDate.format('YYYY-MM-DD'), dueDate.format('YYYY-MM-DD'));
+
+        console.log(`Reminder email sent to ${user.email} for requestId: ${id}`);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Reminder email sent successfully',
+        });
+
+    } catch (err) {
+        console.error('Error in remainderMail:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const delayMail = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!validateRequestId(id)) {
+            return res.status(400).json({ message: 'Invalid requestId format.' });
+        }
+
+        const request = await Requests.findOne({ requestId: id });
+        if (!request) {
+            return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {
+            return res.status(400).json({ message: 'Request is not in approved status.' });
+        }
+        
+        if (request.collectedDate === null) {
+            return res.status(400).json({ message: 'The products not have been collected yet.' });
+        }
+
+        const issuedDate = moment(request.collectedDate).tz("Asia/Kolkata");
+        const dueDate = issuedDate.clone().add(request.adminApprovedDays, 'days');
+
+        const currentDate = moment.tz("Asia/Kolkata");
+
+        if (currentDate.isAfter(dueDate)) {
+            return res.status(400).json({ message: 'Delay can only be sent after the due date.' });
+        }
+
+        const user = await Users.findById(request.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await sendUserDelayEmail(user.email, user.name, request.requestId, issuedDate.format('YYYY-MM-DD'), dueDate.format('YYYY-MM-DD'));
+
+        console.log(`Delay email sent to ${user.email} for requestId: ${id}`);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Delay email sent successfully',
+        });
+
+    } catch (err) {
+        console.error('Error in delayMail:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
 
 module.exports = {
     addRequest,
@@ -738,5 +846,7 @@ module.exports = {
     getUserRequests,
     collectProducts,
     updateProductRequest,
-    closeUncollectedRequests
+    closeUncollectedRequests,
+    remainderMail,
+    delayMail
 };
