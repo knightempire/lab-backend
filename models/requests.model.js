@@ -141,11 +141,6 @@ const requestSchema = new mongoose.Schema(
             default: null
         },
 
-        returnedDate: {
-            type: Date,
-            default: null
-        },
-
         requestStatus: {
             type: String,
             enum: ["approved", "pending", "rejected", "returned", "closed", "reIssued"],
