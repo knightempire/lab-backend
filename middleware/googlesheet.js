@@ -60,15 +60,15 @@ async function cleanEmptyRows(sheets, spreadsheetId, sheetName, headerRowCount =
 }
 
 async function appendRow(rowValues) {
-  if (!Array.isArray(rowValues) || rowValues.length !== 4) {
-    throw new Error('appendRow expects an array with exactly 4 values: [requestId, scheduledCollectionDate, status, returnDate]');
+  if (!Array.isArray(rowValues) || rowValues.length !== 5) {
+    throw new Error('appendRow expects an array with exactly 5 values: [requestId, scheduledCollectionDate, status, returnDate, reminder]');
   }
 
   const client = await auth.getClient();
   const sheets = google.sheets({ version: 'v4', auth: client });
 
   const spreadsheetId = process.env.SPREADSHEET_ID;
-  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:D';
+  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:E';
   const [sheetName] = fullRange.split('!');
 
   await cleanEmptyRows(sheets, spreadsheetId, sheetName);
@@ -76,7 +76,7 @@ async function appendRow(rowValues) {
   const resource = { values: [rowValues] };
   const appendResult = await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${sheetName}!A2:D`,
+    range: `${sheetName}!A2:E`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     resource,
@@ -139,15 +139,15 @@ async function deleteRowbyReqID(requestId) {
 
 async function updateRowbyReqID(requestId, newValues) {
   if (typeof requestId !== 'string') throw new Error('requestId must be a string');
-  if (!Array.isArray(newValues) || newValues.length !== 4) {
-    throw new Error('newValues must be an array of 4 items: [requestId, scheduledCollectionDate, status, returnDate]');
+  if (!Array.isArray(newValues) || newValues.length !== 5) {
+    throw new Error('newValues must be an array of 5 items: [requestId, scheduledCollectionDate, status, returnDate, reminder]');
   }
 
   const client = await auth.getClient();
   const sheets = google.sheets({ version: 'v4', auth: client });
 
   const spreadsheetId = process.env.SPREADSHEET_ID;
-  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:D';
+  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:E';
   const [sheetName] = fullRange.split('!');
 
   const getResponse = await sheets.spreadsheets.values.get({
@@ -169,7 +169,7 @@ async function updateRowbyReqID(requestId, newValues) {
     throw new Error(`No row found with requestId "${requestId}".`);
   }
 
-  const rangeToUpdate = `${sheetName}!A${targetRowIndex + 2}:D${targetRowIndex + 2}`;
+  const rangeToUpdate = `${sheetName}!A${targetRowIndex + 2}:E${targetRowIndex + 2}`;
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,

@@ -5,7 +5,7 @@ const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
-const { appendRow } = require('../middleware/googlesheet');
+const { appendRow, updateRowbyReqID } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
 const { sendStaffNotifyEmail } = require('../middleware/mail/mail');
 
@@ -421,7 +421,7 @@ const approveRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
-        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays]);
+        await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays,0]);
 
         // Send success response with approved request details
         return res.status(200).json({
@@ -664,6 +664,26 @@ const collectProducts = async (req, res) => {
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
+
+
+        try {
+            const collectedDate = moment(updatedRequest.collectedDate).tz("Asia/Kolkata");
+            const adminApprovedDays = updatedRequest.adminApprovedDays || 0;
+            const returnDate = collectedDate.clone().add(adminApprovedDays, 'days').format('DD/MM/YYYY HH:mm');
+            await updateRowbyReqID(
+                updatedRequest.requestId,
+                [
+                    updatedRequest.requestId,
+                    0,
+                    'approved',
+                    returnDate,
+                    0
+                ]
+            );
+        } catch (sheetErr) {
+            console.error('Error updating Google Sheet:', sheetErr);
+        }
+
 
         return res.status(200).json({
             status: 200,
