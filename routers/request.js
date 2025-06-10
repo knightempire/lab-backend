@@ -1,7 +1,8 @@
 const express = require('express');
 const request = express.Router(); 
 const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, 
-    fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts,updateProductRequest, closeUncollectedRequests } = require('../controllers/requests.controllers');
+    fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts, 
+    updateProductRequest, closeUncollectedRequests, remainderMail, delayMail } = require('../controllers/requests.controllers');
 const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 
 request.post('/add', tokenValidator, addRequest);
@@ -17,5 +18,8 @@ request.get('/user', tokenValidator, getUserRequests);
 request.post('/collect/:id', tokenValidator, collectProducts);
 request.put('/update-product/:id', admintokenValidator, updateProductRequest);
 request.put('/failed/:id', admintokenValidator, closeUncollectedRequests);
+request.post('/reminder/:id', admintokenValidator, remainderMail);
+request.post('/delay/:id', admintokenValidator, delayMail);
+
 
 module.exports = request;
