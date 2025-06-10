@@ -711,7 +711,7 @@ const closeUncollectedRequests = async (req, res) => {
 
         const updatedRequest = await Requests.findOneAndUpdate(
             { requestId: id },
-            { $set: { requestStatus: 'closed' } },
+            { $set: { AllReturnedDate: moment.tz("Asia/Kolkata").toDate(), requestStatus: 'closed' } },
             { new: true, runValidators: true }
         )
         .populate('userId', 'name email rollNo')
