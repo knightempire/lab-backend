@@ -3,6 +3,7 @@ const Requests = require('../models/requests.model');
 const mongoose = require('mongoose');
 const Products = require('../models/product.model');
 const moment = require('moment-timezone');
+const { deleteRowbyReqID } = require('../middleware/googlesheet');
 
 const returnProducts = async (req, res) => {
     try {
@@ -74,6 +75,12 @@ const returnProducts = async (req, res) => {
         if (status === 201) {
             request.requestStatus = 'returned';
             request.AllReturnedDate = moment.tz("Asia/Kolkata").toDate();
+
+            try {
+                await deleteRowbyReqID(requestId);
+            } catch (sheetErr) {
+                console.error('Error deleting row from Google Sheet:', sheetErr);
+            }
         }
 
         await request.save();
