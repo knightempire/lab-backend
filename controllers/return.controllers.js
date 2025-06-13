@@ -36,9 +36,9 @@ const returnProducts = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        if (request.requestStatus !== 'approved') {
-            return res.status(400).json({ message: 'Request is not approved' });
-        }
+        // if (request.requestStatus !== 'approved' || request.requestStatus !== 'reIssued') {
+        //     return res.status(400).json({ message: 'Request is not approved' });
+        // }
 
         // Find the issued item by issuedProductId
         const issuedItem = request.issued.find(
