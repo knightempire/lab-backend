@@ -3,6 +3,7 @@ const Requests = require('../models/requests.model');
 const mongoose = require('mongoose');
 const Products = require('../models/product.model');
 const moment = require('moment-timezone');
+const { deleteRowbyReqID } = require('../middleware/googlesheet');
 
 const returnProducts = async (req, res) => {
     try {
@@ -35,9 +36,9 @@ const returnProducts = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        if (request.requestStatus !== 'approved') {
-            return res.status(400).json({ message: 'Request is not approved' });
-        }
+        // if (request.requestStatus !== 'approved' || request.requestStatus !== 'reIssued') {
+        //     return res.status(400).json({ message: 'Request is not approved' });
+        // }
 
         // Find the issued item by issuedProductId
         const issuedItem = request.issued.find(
@@ -74,6 +75,12 @@ const returnProducts = async (req, res) => {
         if (status === 201) {
             request.requestStatus = 'returned';
             request.AllReturnedDate = moment.tz("Asia/Kolkata").toDate();
+
+            try {
+                await deleteRowbyReqID(requestId);
+            } catch (sheetErr) {
+                console.error('Error deleting row from Google Sheet:', sheetErr);
+            }
         }
 
         await request.save();
