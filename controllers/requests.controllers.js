@@ -43,7 +43,7 @@ const addRequest = async (req, res) => {
         } = req.body;
 
         // Required fields check
-        const requiredFields = ['userid', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
+        const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
         if (missingFields.length > 0) {
@@ -81,11 +81,17 @@ const addRequest = async (req, res) => {
         const requestData = {
             requestId,
             userId: requestUserId,
-            referenceId,
             description,
             requestedDays,
             requestedProducts
         };
+
+        if (!user.isFaculty) {
+            if (!referenceId) {
+                return res.status(400).json({ message: 'Reference ID is required for students' });
+            }
+            requestData.referenceId = referenceId;
+        }
 
         // Create a new request instance
         const newRequest = new Requests(requestData);
