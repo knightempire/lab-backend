@@ -2,7 +2,7 @@ require('dotenv').config();
 const nodemailer = require('nodemailer');
 const { TEMPLATE_WELCOME_MAIL, TEMPLATE_RESET_MAIL, TEMPLATE_ADMIN_WELCOME_MAIL } = require('./mail_temp');
 const { registermailtoken, forgotmailtoken } = require('../auth/tokencreation');
-const { USER_ACCEPT_MAIL_TEMPLATE, USER_REJECT_MAIL_TEMPLATE, USER_REMINDER_MAIL_TEMPLATE, USER_DELAY_MAIL_TEMPLATE, USER_RE_NOTIFY_MAIL_TEMPLATE, USER_RE_ACCEPT_MAIL_TEMPLATE, USER_RE_REJECT_MAIL_TEMPLATE } = require('./user_mail_temp');
+const { USER_NOTIFY_MAIL_TEMPLATE, USER_ACCEPT_MAIL_TEMPLATE, USER_REJECT_MAIL_TEMPLATE, USER_REMINDER_MAIL_TEMPLATE, USER_DELAY_MAIL_TEMPLATE, USER_RE_NOTIFY_MAIL_TEMPLATE, USER_RE_ACCEPT_MAIL_TEMPLATE, USER_RE_REJECT_MAIL_TEMPLATE, USER_RETURN_MAIL_TEMPLATE, USER_COLLECT_MAIL_TEMPLATE } = require('./user_mail_temp');
 const { STAFF_NOTIFY_MAIL_TEMPLATE, STAFF_ACCEPT_MAIL_TEMPLATE, STAFF_REJECT_MAIL_TEMPLATE, STAFF_RE_NOTIFY_MAIL_TEMPLATE, STAFF_RE_ACCEPT_MAIL_TEMPLATE, STAFF_RE_REJECT_MAIL_TEMPLATE } = require('./staff_mail_temp');
 
 
@@ -80,18 +80,36 @@ const sendforgotEmail = async (email, name) => {
   }
 };
 
-
-
-
-// Function to send user accept email
-const sendUserAcceptEmail = async (email, name, requestDate, dueDate, Request_ID) => {
+// Function to send user notify email
+const sendUserNotifyEmail = async (email, name, Expected_Duration, Request_Date_Time, Request_ID) => {
   try {
-    console.log("sendUserAcceptEmail");
-    const htmlContent = USER_ACCEPT_MAIL_TEMPLATE(name, requestDate, dueDate, Request_ID);
+    console.log("sendUserNotifyEmail");
+    const htmlContent = USER_NOTIFY_MAIL_TEMPLATE(name, Expected_Duration, Request_Date_Time, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Request Received – AmudaLab Equipment Management',
+      text: `Hello ${name}`,
+      html: htmlContent,
+    };
+    await transporter.sendMail(mailOptions);
+    console.log("User notify email sent successfully ✅");
+  } catch (error) {
+    console.error("Error sending user notify email ❌:", error.response || error);
+    throw new Error('Error sending user notify email');
+  }
+};
+
+
+// Function to send user accept email
+const sendUserAcceptEmail = async (email, name, date, Admin_Expected_Duration, Admin_Schedule_Date_and_Time, Request_ID) => {
+  try {
+    console.log("sendUserAcceptEmail");
+    const htmlContent = USER_ACCEPT_MAIL_TEMPLATE(name, date, Admin_Expected_Duration, Admin_Schedule_Date_and_Time, Request_ID);
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Request Approved – Equipment Ready for Collection',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -104,14 +122,14 @@ const sendUserAcceptEmail = async (email, name, requestDate, dueDate, Request_ID
 };
 
 // Function to send user reject email
-const sendUserRejectEmail = async (email, name, requestDate, Request_ID, reason) => {
+const sendUserRejectEmail = async (email, name, Date, Request_ID, reason) => {
   try {
     console.log("sendUserRejectEmail");
-    const htmlContent = USER_REJECT_MAIL_TEMPLATE(name, requestDate, Request_ID, reason);
+    const htmlContent = USER_REJECT_MAIL_TEMPLATE(name, Date, Request_ID, reason);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Request Declined – AmudaLab Equipment Notification',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -124,14 +142,14 @@ const sendUserRejectEmail = async (email, name, requestDate, Request_ID, reason)
 };
 
 // Function to send user reminder email
-const sendUserReminderEmail = async (email, name, Request_ID, issuedDate, dueDate) => {
+const sendUserReminderEmail = async (email, name, Request_ID, Collected_Date_Time, Return_Date_Time) => {
   try {
     console.log("sendUserReminderEmail");
-    const htmlContent = USER_REMINDER_MAIL_TEMPLATE(name, Request_ID, issuedDate, dueDate);
+    const htmlContent = USER_REMINDER_MAIL_TEMPLATE(name, Request_ID, Collected_Date_Time, Return_Date_Time);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reminder: Upcoming Equipment Return Due Date',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -144,14 +162,14 @@ const sendUserReminderEmail = async (email, name, Request_ID, issuedDate, dueDat
 };
 
 // Function to send user delay email
-const sendUserDelayEmail = async (email, name, Request_ID, issuedDate, dueDate) => {
+const sendUserDelayEmail = async (email, name, Request_ID, Request_Date_Time, Issued_Date_Time, Due_Date_Time) => {
   try {
     console.log("sendUserDelayEmail");
-    const htmlContent = USER_DELAY_MAIL_TEMPLATE(name, Request_ID, issuedDate, dueDate);
+    const htmlContent = USER_DELAY_MAIL_TEMPLATE(name, Request_ID, Request_Date_Time, Issued_Date_Time, Due_Date_Time);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reminder: Equipment Return Overdue',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -171,7 +189,7 @@ const sendUserReNotifyEmail = async (email, name, Request_ID) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reissue Request Under Review',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -184,14 +202,14 @@ const sendUserReNotifyEmail = async (email, name, Request_ID) => {
 };
 
 // Function to send user re-accept email
-const sendUserReAcceptEmail = async (email, name, dueDate, Request_ID) => {
+const sendUserReAcceptEmail = async (email, name, Approved_Date_Time, Request_ID) => {
   try {
     console.log("sendUserReAcceptEmail");
-    const htmlContent = USER_RE_ACCEPT_MAIL_TEMPLATE(name, dueDate, Request_ID);
+    const htmlContent = USER_RE_ACCEPT_MAIL_TEMPLATE(name, Approved_Date_Time, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reissue Request Approved – Updated Due Date',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -211,7 +229,7 @@ const sendUserReRejectEmail = async (email, name, Request_ID, reason) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reissue Request Declined – Action Required',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -223,19 +241,59 @@ const sendUserReRejectEmail = async (email, name, Request_ID, reason) => {
   }
 };
 
+// Function to send user return email
+const sendUserReturnEmail = async (email, name, Request_ID, Return_Date_Time) => {
+  try {
+    console.log("sendUserReturnEmail");
+    const htmlContent = USER_RETURN_MAIL_TEMPLATE(name, Request_ID, Return_Date_Time);
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Equipment Returned – Confirmation Received',
+      text: `Hello ${name}`,
+      html: htmlContent,
+    };
+    await transporter.sendMail(mailOptions);
+    console.log("User return email sent successfully ✅");
+  } catch (error) {
+    console.error("Error sending user return email ❌:", error.response || error);
+    throw new Error('Error sending user return email');
+  }
+};
+
+// Function to send user collect email
+const sendUserCollectEmail = async (email, name, Request_ID, Collection_Date_Time, New_Due_Date) => {
+  try {
+    console.log("sendUserCollectEmail");
+    const htmlContent = USER_COLLECT_MAIL_TEMPLATE(name, Request_ID, Collection_Date_Time, New_Due_Date);
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Collection Confirmed – Updated Return Due Date Provided',
+      text: `Hello ${name}`,
+      html: htmlContent,
+    };
+    await transporter.sendMail(mailOptions);
+    console.log("User collect email sent successfully ✅");
+  } catch (error) {
+    console.error("Error sending user collect email ❌:", error.response || error);
+    throw new Error('Error sending user collect email');
+  }
+};
+
 
 
 
 
 // Function to send staff notification email
-const sendStaffNotifyEmail = async (email, name, Roll_No, Student_Name, Request_ID) => {
+const sendStaffNotifyEmail = async (email, name, Student_ID, Student_Name, Request_ID) => {
   try {
     console.log("sendStaffNotifyEmail");
-    const htmlContent = STAFF_NOTIFY_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID);
+    const htmlContent = STAFF_NOTIFY_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,  
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Notification – Your Email Referenced in Equipment Request',
       text: `Hello ${name}`,
       html: htmlContent, 
     };
@@ -248,14 +306,14 @@ const sendStaffNotifyEmail = async (email, name, Roll_No, Student_Name, Request_
 };
 
 // Function to send staff accept email
-const sendStaffAcceptEmail = async (email, name, Roll_No, Student_Name, Request_ID) => {
+const sendStaffAcceptEmail = async (email, name, Student_ID, Student_Name, Request_ID) => {
   try {
     console.log("sendStaffAcceptEmail");
-    const htmlContent = STAFF_ACCEPT_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID);
+    const htmlContent = STAFF_ACCEPT_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Student Equipment Request Approved – FYI',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -268,14 +326,14 @@ const sendStaffAcceptEmail = async (email, name, Roll_No, Student_Name, Request_
 };
 
 // Function to send staff reject email
-const sendStaffRejectEmail = async (email, name, Roll_No, Student_Name, Request_ID, reason) => {
+const sendStaffRejectEmail = async (email, name, Student_ID, Student_Name, Request_ID, reason) => {
   try {
     console.log("sendStaffRejectEmail");
-    const htmlContent = STAFF_REJECT_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID, reason);
+    const htmlContent = STAFF_REJECT_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID, reason);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Student Equipment Request Declined – FYI',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -288,14 +346,14 @@ const sendStaffRejectEmail = async (email, name, Roll_No, Student_Name, Request_
 };
 
 // Function to send staff re-notify email
-const sendStaffReNotifyEmail = async (email, name, Roll_No, Student_Name, Request_ID, newDueDate) => {
+const sendStaffReNotifyEmail = async (email, name, Student_ID, Student_Name, Request_ID) => {
   try {
     console.log("sendStaffReNotifyEmail");
-    const htmlContent = STAFF_RE_NOTIFY_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID, newDueDate);
+    const htmlContent = STAFF_RE_NOTIFY_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Student Submitted Equipment Reissue Request – Notification',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -308,14 +366,14 @@ const sendStaffReNotifyEmail = async (email, name, Roll_No, Student_Name, Reques
 };
 
 // Function to send staff re-accept email
-const sendStaffReAcceptEmail = async (email, name, Roll_No, Student_Name, Request_ID, newDueDate) => {
+const sendStaffReAcceptEmail = async (email, name, Student_ID, Student_Name, Request_ID) => {
   try {
     console.log("sendStaffReAcceptEmail");
-    const htmlContent = STAFF_RE_ACCEPT_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID, newDueDate);
+    const htmlContent = STAFF_RE_ACCEPT_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reissue Approved for Student – FYI',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -328,14 +386,14 @@ const sendStaffReAcceptEmail = async (email, name, Roll_No, Student_Name, Reques
 };
 
 // Function to send staff re-reject email
-const sendStaffReRejectEmail = async (email, name, Roll_No, Student_Name, Request_ID, reason) => {
+const sendStaffReRejectEmail = async (email, name, Student_ID, Student_Name, Request_ID, reason) => {
   try {
     console.log("sendStaffReRejectEmail");
-    const htmlContent = STAFF_RE_REJECT_MAIL_TEMPLATE(name, Roll_No, Student_Name, Request_ID, reason);
+    const htmlContent = STAFF_RE_REJECT_MAIL_TEMPLATE(name, Student_ID, Student_Name, Request_ID, reason);
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Amudalab -',
+      subject: 'Reissue Declined for Student – FYI',
       text: `Hello ${name}`,
       html: htmlContent,
     };
@@ -355,6 +413,7 @@ module.exports = {
   sendStaffReAcceptEmail,
   sendStaffReRejectEmail,
 
+  sendUserNotifyEmail,
   sendUserAcceptEmail,
   sendUserRejectEmail,
   sendUserReminderEmail,
@@ -362,6 +421,8 @@ module.exports = {
   sendUserReNotifyEmail,
   sendUserReAcceptEmail,
   sendUserReRejectEmail,
+  sendUserReturnEmail,
+  sendUserCollectEmail,
 
  sendregisterEmail, 
  sendforgotEmail };
