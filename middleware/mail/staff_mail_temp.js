@@ -158,7 +158,7 @@ const COMMON_STYLES = `
   }
 `;
 
-const STAFF_NOTIFY_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID) => {
+const STAFF_NOTIFY_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID) => {
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -176,85 +176,21 @@ const STAFF_NOTIFY_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID) => 
     
         <main>
             <h1>Respected ${name},</h1> <br>
-            
-           <p class="verification-text">We would like to inform you that your email address has been provided by ${Student_Name} during a recent equipment issue request submitted through the Amudalab Equipment Management system.
+<p class="verification-text">
+We would like to inform you that your email address has been provided by ${Student_Name} during a recent equipment issue request submitted through the Amudalab Equipment Management system.
 </p>
-
-
-     
-    
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-               Student Roll No: ${Roll_No}
-<br>
-           Request ID: ${Request_ID}
-           <br> <br>
-This information is being shared for your awareness, as your details have been provided by the student.
-<br>
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br><br>
+This information is being shared for your awareness, as your details have been provided by the student.<br>
 If you have any concerns about this request or were not informed by the student, please feel free to contact the lab administration.
-
-
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
-        </main>
-    
-        <footer>
-            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
-        </footer>
-    </div>
-</body>
-      </html>
-    `;
-}
-
-const STAFF_ACCEPT_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID) => {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <title>Email</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>${COMMON_STYLES}</style>
-      </head>
-<body>
-    <div class="container">
-    <header>
-    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
-</header>
-
-    
-        <main>
-            <h1>Respected  ${name},</h1> <br>
-            
-           <p class="verification-text">This is to inform you that the equipment issue request submitted by ${Student_Name} has been approved through the Amudalab Equipment Management system.
-
+</p>
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
 </p>
 
-
-     
-    
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-               Student Roll No: ${Roll_No}
-<br>
-           Request ID: ${Request_ID}
-           <br> <br>
-
-Your email was provided as part of the request, and this notification is sent for your records and awareness. <br>
-If you have any concerns or questions regarding this request, please don’t hesitate to reach out to the lab team.
-
-
-
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
         </main>
     
         <footer>
@@ -266,64 +202,7 @@ If you have any concerns or questions regarding this request, please don’t hes
     `;
 }
 
-const STAFF_REJECT_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, reason) => {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <title>Email</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>${COMMON_STYLES}</style>
-      </head>
-<body>
-    <div class="container">
-    <header>
-    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
-</header>
-
-    
-        <main>
-            <h1>Respected  ${name},</h1> <br>
-            
-           <p class="verification-text">We would like to notify you that the equipment issue request submitted by ${Student_Name} has been rejected in the Amudalab Equipment Management system.
-
-</p>
-
-
-     
-    
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-               Student Roll No: ${Roll_No}
-<br>
-           Request ID: ${Request_ID}
-           <br>
-           Reason : ${reason ? reason : "Due to unavailability or conflict with current lab scheduling."}
-           <br> <br>
-
-Your email was provided as part of the request, and this notification is sent for your records and awareness. <br>
-If you have any concerns or questions regarding this request, please don’t hesitate to reach out to the lab team.
-
-
-
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
-        </main>
-    
-        <footer>
-            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
-        </footer>
-    </div>
-</body>
-      </html>
-    `;
-}
-
-const STAFF_RE_NOTIFY_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, newDueDate) => {
+const STAFF_ACCEPT_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID) => {
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -341,86 +220,21 @@ const STAFF_RE_NOTIFY_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, 
     
         <main>
             <h1>Respected ${name},</h1> <br>
-            
-           <p class="verification-text">
-We would like to inform you that ${Student_Name} (${Roll_No}) has submitted a reissue request for the following lab equipment:
-
+<p class="verification-text">
+This is to inform you that the equipment issue request submitted by ${Student_Name} has been approved through the Amudalab Equipment Management system.
 </p>
-
-
-     
-    
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-           Request ID: ${Request_ID} <br>
-           Requested Extension: ${newDueDate}
-           <br> <br>
-Your email was provided during the request, and this notification is shared for your awareness.
-
-
-
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
-        </main>
-    
-        <footer>
-            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
-        </footer>
-    </div>
-</body>
-      </html>
-    `;
-}
-
-const STAFF_RE_ACCEPT_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, newDueDate) => {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <title>Email</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>${COMMON_STYLES}</style>
-      </head>
-<body>
-    <div class="container">
-    <header>
-    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
-</header>
-
-    
-        <main>
-            <h1>Dear ${name},</h1> <br>
-            
-           <p class="verification-text">This is to inform you that the reissue request submitted by ${Student_Name} (${Roll_No}) has been approved.
-
-
-</p>
-
-
-     
-    
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-           Request ID: ${Request_ID} <br>
-           New Validity Period: ${newDueDate}
-
-           <br> <br>
-
-This update is for your reference, as your email was provided during the student’s request. <br>
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br><br>
+Your email was provided as part of the request, and this notification is sent for your records and awareness.<br>
 If you have any concerns or questions regarding this request, please don’t hesitate to reach out to the lab team.
+</p>
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
+</p>
 
-
-
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
         </main>
     
         <footer>
@@ -432,7 +246,7 @@ If you have any concerns or questions regarding this request, please don’t hes
     `;
 }
 
-const STAFF_RE_REJECT_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, reason) => {
+const STAFF_REJECT_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID, reason) => {
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -449,31 +263,158 @@ const STAFF_RE_REJECT_MAIL_TEMPLATE = (name, Roll_No, Student_Name, Request_ID, 
 
     
         <main>
-            <h1>Dear ${name},</h1> <br>
-            
-           <p class="verification-text">We would like to inform you that the reissue request submitted by ${Student_Name} (${Roll_No}) has been rejected.
+            <h1>Respected ${name},</h1> <br>
+<p class="verification-text">
+We would like to notify you that the equipment issue request submitted by ${Student_Name} has been rejected in the Amudalab Equipment Management system.
+</p>
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br>
+Reason: ${reason ? reason : "Due to unavailability or conflict with current lab scheduling."}<br><br>
+Your email was provided as part of the request, and this notification is sent for your records and awareness.<br>
+If you have any concerns or questions regarding this request, please don’t hesitate to reach out to the lab team.
+</p>
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
 </p>
 
-
-     
+        </main>
     
-            <p class="expiration-text">
-               <strong>Request Details</strong><br>
-           Request ID: ${Request_ID}
-           <br>
-           Reason : ${reason ? reason : "Due to unavailability or conflict with current lab scheduling."}
-           <br> <br>
+        <footer>
+            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
+        </footer>
+    </div>
+</body>
+      </html>
+    `;
+}
 
-This notification is sent for your awareness, as your email was referenced in the student’s request. 
+const STAFF_RE_NOTIFY_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID) => {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <title>Email</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${COMMON_STYLES}</style>
+      </head>
+<body>
+    <div class="container">
+    <header>
+    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
+</header>
 
+    
+        <main>
+            <h1>Respected ${name},</h1> <br>
+<p class="verification-text">
+We would like to inform you that ${Student_Name} has submitted a reissue request for the following lab equipment:
+</p>
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br>
+Your email was provided during the request, and this notification is shared for your awareness.
+</p>
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
+</p>
 
+        </main>
+    
+        <footer>
+            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
+        </footer>
+    </div>
+</body>
+      </html>
+    `;
+}
 
-            </p>
-            <p class="regards-text">
-                Best Regards, <br>
-                The Amuda-lab Team
-          
-            </p>
+const STAFF_RE_ACCEPT_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID) => {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <title>Email</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${COMMON_STYLES}</style>
+      </head>
+<body>
+    <div class="container">
+    <header>
+    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
+</header>
+
+    
+        <main>
+            <h1>Respected ${name},</h1><br>
+<p class="verification-text">
+This is to inform you that the reissue request submitted by ${Student_Name} has been approved.
+</p>
+
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br>
+This update is for your reference, as your email was provided during the student’s request. If you have any concerns or questions regarding this request, please don’t hesitate to reach out to the lab team.
+</p>
+
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
+</p>
+
+        </main>
+    
+        <footer>
+            <p class="contact-text">Should you have any questions or require assistance, please feel free to reach out to our team at <a href="mailto:amudalab2025@gmail.com" class="contact-link">amudalab2025@gmail.com</a></p>
+        </footer>
+    </div>
+</body>
+      </html>
+    `;
+}
+
+const STAFF_RE_REJECT_MAIL_TEMPLATE = (name, Student_ID, Student_Name, Request_ID, reason) => {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <title>Email</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${COMMON_STYLES}</style>
+      </head>
+<body>
+    <div class="container">
+    <header>
+    <img class="logo" src="https://i.ibb.co/kghNV3gy/amuda-lab-temp-img.png" alt="" style="width: 300px; height: auto;">
+</header>
+
+    
+        <main>
+            <h1>Respected ${name},</h1><br>
+<p class="verification-text">
+We would like to inform you that the reissue request submitted by ${Student_Name} has been rejected.
+</p>
+
+<p class="expiration-text">
+<strong>Request Details</strong><br>
+Student ID: ${Student_ID}<br>
+Request ID: ${Request_ID}<br>
+Reason: ${reason ? reason : "Due to unavailability or conflict with current lab scheduling."}<br><br>
+
+This notification is sent for your awareness, as your email was referenced in the student’s request.
+</p>
+
+<p class="regards-text">
+Best Regards, <br>
+The Amuda-lab Team
+</p>
+
         </main>
     
         <footer>

@@ -78,8 +78,7 @@ const requestSchema = new mongoose.Schema(
 
         referenceId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "References",
-            required: true
+            ref: "References"
         },
 
         description: {

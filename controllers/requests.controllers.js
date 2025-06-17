@@ -43,7 +43,7 @@ const addRequest = async (req, res) => {
         } = req.body;
 
         // Required fields check
-        const requiredFields = ['userid', 'referenceId', 'description', 'requestedDays', 'requestedProducts'];
+        const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
         const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
         if (missingFields.length > 0) {
@@ -81,11 +81,17 @@ const addRequest = async (req, res) => {
         const requestData = {
             requestId,
             userId: requestUserId,
-            referenceId,
             description,
             requestedDays,
             requestedProducts
         };
+
+        if (!user.isFaculty) {
+            if (!referenceId) {
+                return res.status(400).json({ message: 'Reference ID is required for students' });
+            }
+            requestData.referenceId = referenceId;
+        }
 
         // Create a new request instance
         const newRequest = new Requests(requestData);
@@ -311,13 +317,6 @@ const fetchAllRequests = async (req, res) => {
             .populate('userId', 'name email rollNo phoneNo')
             .populate('referenceId', 'name email rollNo');
 
-        //No Request to display
-        if (!requests || requests.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: 'No requests found'
-            });
-        }
 
         //Send the request details
         return res.status(200).json({
