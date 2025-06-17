@@ -317,13 +317,6 @@ const fetchAllRequests = async (req, res) => {
             .populate('userId', 'name email rollNo phoneNo')
             .populate('referenceId', 'name email rollNo');
 
-        //No Request to display
-        if (!requests || requests.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: 'No requests found'
-            });
-        }
 
         //Send the request details
         return res.status(200).json({
