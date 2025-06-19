@@ -33,117 +33,122 @@ const generateRequestId = async (isFaculty) => {
 };
 
 const addRequest = async (req, res) => {
-    try {
-        let {
-            userid,
-            referenceId,
-            description,
-            requestedDays,
-            requestedProducts
-        } = req.body;
+  try {
+    let {
+      userid,
+      referenceId,
+      description,
+      requestedDays,
+      requestedProducts,
+    } = req.body;
 
-        // Required fields check
-        const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
-        const missingFields = requiredFields.filter(field => req.body[field] === undefined);
+    // Required fields check
+    const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
+    const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                message: `Missing required fields: ${missingFields.join(', ')}`
-            });
-        }
-
-        // Validate requestedProducts
-        if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
-            return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
-        }
-        
-        for (const prod of requestedProducts) {
-            if (
-                !mongoose.Types.ObjectId.isValid(prod.productId) ||
-                typeof prod.quantity !== 'number' ||
-                prod.quantity < 1
-            ) {
-                return res.status(400).json({
-                    message: 'Each requestedProduct must have a valid productId and a positive quantity'
-                });
-            }
-        }
-
-        const requestUserId = userid;
-        const user = await Users.findById(requestUserId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const requestId = await generateRequestId(user.isFaculty);
-
-        // Prepare requestData with required fields
-        const requestData = {
-            requestId,
-            userId: requestUserId,
-            description,
-            requestedDays,
-            requestedProducts
-        };
-
-        if (!user.isFaculty) {
-            if (!referenceId) {
-                return res.status(400).json({ message: 'Reference ID is required for students' });
-            }
-            requestData.referenceId = referenceId;
-        }
-
-        // Create a new request instance
-        const newRequest = new Requests(requestData);
-
-        // Save the request to the database
-        await newRequest.save();
-
-        const populatedRequest = await Requests.findById(newRequest._id)
-            .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo')
-            .populate('requestedProducts.productId', 'product_name');
-
-        // Formating the response
-        const responseData = {
-            requestId: populatedRequest.requestId,
-            user: {
-                name: populatedRequest.userId.name,
-                email: populatedRequest.userId.email,
-                rollNo: populatedRequest.userId.rollNo
-            },
-            reference: {
-                name: populatedRequest.referenceId.name,
-                email: populatedRequest.referenceId.email,
-                rollNo: populatedRequest.referenceId.rollNo
-            },
-            description: populatedRequest.description,
-            requestedDays: populatedRequest.requestedDays,
-            requestedProducts: populatedRequest.requestedProducts.map(item => ({
-                productName: item.productId ? item.productId.product_name : null,
-                quantity: item.quantity
-            })),
-            requestDate: populatedRequest.requestDate,
-            requestStatus: populatedRequest.requestStatus
-        };
-
-    const referenceEmail = populatedRequest.referenceId.email;
-    const referenceName = populatedRequest.referenceId.name;
-    const referenceRollNo = populatedRequest.userId.rollNo;
-    const studentName = populatedRequest.userId.name;
-    const requestID = populatedRequest.requestId;
-    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
-    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
-        // Send success response
-        return res.status(201).json({
-            status: 201,
-            message: 'Request created successfully',
-            request: responseData
-        });
-    } catch (err) {
-        console.error('Error in addRequest:', err);
-        return res.status(500).json({ message: 'Server error' });
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
     }
+
+    // Validate requestedProducts
+    if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
+      return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+    }
+
+    for (const prod of requestedProducts) {
+      if (
+        !mongoose.Types.ObjectId.isValid(prod.productId) ||
+        typeof prod.quantity !== 'number' ||
+        prod.quantity < 1
+      ) {
+        return res.status(400).json({
+          message: 'Each requestedProduct must have a valid productId and a positive quantity'
+        });
+      }
+    }
+
+    const user = await Users.findById(userid);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const requestId = await generateRequestId(user.isFaculty);
+
+    // Prepare requestData with required fields
+    const requestData = {
+      requestId,
+      userId: userid,
+      description,
+      requestedDays,
+      requestedProducts
+    };
+
+    // Logic for referenceId based on isFaculty
+    if (!user.isFaculty) {
+      // For students, referenceId is mandatory
+      if (!referenceId) {
+        return res.status(400).json({ message: 'Reference ID is required for students' });
+      }
+      requestData.referenceId = referenceId;
+    } else {
+      // For faculty, set referenceId to null or omit it
+      requestData.referenceId = null;  // or simply do not set this property
+    }
+
+    const newRequest = new Requests(requestData);
+    await newRequest.save();
+
+    const populatedRequest = await Requests.findById(newRequest._id)
+      .populate('userId', 'name email rollNo')
+      .populate('referenceId', 'name email rollNo')
+      .populate('requestedProducts.productId', 'product_name');
+
+    // Format response safely checking referenceId existence
+    const responseData = {
+      requestId: populatedRequest.requestId,
+      user: {
+        name: populatedRequest.userId.name,
+        email: populatedRequest.userId.email,
+        rollNo: populatedRequest.userId.rollNo
+      },
+      reference: populatedRequest.referenceId ? {
+        name: populatedRequest.referenceId.name,
+        email: populatedRequest.referenceId.email,
+        rollNo: populatedRequest.referenceId.rollNo
+      } : null,
+      description: populatedRequest.description,
+      requestedDays: populatedRequest.requestedDays,
+      requestedProducts: populatedRequest.requestedProducts.map(item => ({
+        productName: item.productId ? item.productId.product_name : null,
+        quantity: item.quantity
+      })),
+      requestDate: populatedRequest.requestDate,
+      requestStatus: populatedRequest.requestStatus
+    };
+
+    // Only send email notification if reference exists
+    if (populatedRequest.referenceId) {
+      await sendStaffNotifyEmail(
+        populatedRequest.referenceId.email,
+        populatedRequest.referenceId.name,
+        populatedRequest.referenceId.rollNo,
+        populatedRequest.userId.name,
+        populatedRequest.requestId
+      );
+    }
+
+    return res.status(201).json({
+      status: 201,
+      message: 'Request created successfully',
+      request: responseData
+    });
+
+  } catch (err) {
+    console.error('Error in addRequest:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
 };
 
 const updateRequest = async (req, res) => {
