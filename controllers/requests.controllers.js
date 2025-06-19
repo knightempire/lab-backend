@@ -427,13 +427,16 @@ const approveRequest = async (req, res) => {
 
         await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays,0]);
 
+        const requestID = approvedRequest.requestId;
+        const studentName = approvedRequest.userId.name;
+        const referenceRollNo = approvedRequest.userId.rollNo;
+
+        if (approvedRequest.referenceId) {
         const referenceEmail = approvedRequest.referenceId.email;
         const referenceName = approvedRequest.referenceId.name;
-        const referenceRollNo = approvedRequest.userId.rollNo;
-        const studentName = approvedRequest.userId.name;
-        const requestID = approvedRequest.requestId;
 
         await sendStaffAcceptEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        }
 
         // Send success response with approved request details
         return res.status(200).json({
@@ -478,15 +481,19 @@ const rejectRequest = async (req, res) => {
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
-
-        const referenceEmail = updatedRequest.referenceId.email;
-        const referenceName = updatedRequest.referenceId.name;
-        const referenceRollNo = updatedRequest.userId.rollNo;
-        const studentName = updatedRequest.userId.name;
+        
         const requestID = updatedRequest.requestId;
+        const studentName = updatedRequest.userId.name;
+        const referenceRollNo = updatedRequest.userId.rollNo;
         const reason = adminReturnMessage || 'The request has been rejected by the admin';
 
-        await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
+        // Send email only if referenceId is present (i.e., for students)
+        if (updatedRequest.referenceId) {
+            const referenceEmail = updatedRequest.referenceId.email;
+            const referenceName = updatedRequest.referenceId.name;
+
+            await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
+        }
 
 
         // Send success response with updated request details
