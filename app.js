@@ -11,6 +11,7 @@ const referenceRoutes = require('./routers/reference');
 const damagedRoutes = require('./routers/damaged');
 const loginRoutes = require('./routers/login');
 const reIssuedRoutes = require('./routers/reIssued.js');
+const dashboardRoutes = require('./routers/dashboard');
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/request', returnRoutes);
 app.use('/api/reference', referenceRoutes);
 app.use('/api/damaged', damagedRoutes);
 app.use('/api/reIssued', reIssuedRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/', loginRoutes);
 
 connectToDb().then(() => {

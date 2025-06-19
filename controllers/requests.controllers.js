@@ -112,11 +112,6 @@ const addRequest = async (req, res) => {
                 email: populatedRequest.userId.email,
                 rollNo: populatedRequest.userId.rollNo
             },
-            reference: {
-                name: populatedRequest.referenceId.name,
-                email: populatedRequest.referenceId.email,
-                rollNo: populatedRequest.referenceId.rollNo
-            },
             description: populatedRequest.description,
             requestedDays: populatedRequest.requestedDays,
             requestedProducts: populatedRequest.requestedProducts.map(item => ({
@@ -127,13 +122,21 @@ const addRequest = async (req, res) => {
             requestStatus: populatedRequest.requestStatus
         };
 
-    const referenceEmail = populatedRequest.referenceId.email;
-    const referenceName = populatedRequest.referenceId.name;
-    const referenceRollNo = populatedRequest.userId.rollNo;
-    const studentName = populatedRequest.userId.name;
-    const requestID = populatedRequest.requestId;
-    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
-    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        if (!user.isFaculty) {
+            
+            responseData.reference = {
+                name: populatedRequest.referenceId.name,
+                email: populatedRequest.referenceId.email,
+                rollNo: populatedRequest.referenceId.rollNo
+            };
+            const referenceEmail = populatedRequest.referenceId.email;
+            const referenceName = populatedRequest.referenceId.name;
+            const referenceRollNo = populatedRequest.userId.rollNo;
+            const studentName = populatedRequest.userId.name;
+            const requestID = populatedRequest.requestId;
+            console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
+            await sendUserReminderEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        }
         // Send success response
         return res.status(201).json({
             status: 201,
