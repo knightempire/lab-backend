@@ -51,7 +51,7 @@ const fetchUser = async (req, res) => {
     try {
         const { rollNo } = req.body;
 
-        const user = await Users.findOne({ rollNo });
+   const user = await Users.findOne({ rollNo }).select('-password');
 
         if (!user) {
             return res.status(404).json({ message: `User with rollNo: ${rollNo} doesn't exist.` });
