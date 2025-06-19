@@ -164,9 +164,9 @@ const updateRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
-        if (request.requestStatus !== 'pending') {
-            return res.status(400).json({ message: 'Request is not in pending status.' });
-        }
+        // if (request.requestStatus !== 'pending') {
+        //     return res.status(400).json({ message: 'Request is not in pending status.' });
+        // }
 
         if (request.collectedDate !== null) {
             return res.status(400).json({ message: 'The products have been collected.' });
@@ -481,7 +481,7 @@ const rejectRequest = async (req, res) => {
         if (!updatedRequest) {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
-        
+
         const requestID = updatedRequest.requestId;
         const studentName = updatedRequest.userId.name;
         const referenceRollNo = updatedRequest.userId.rollNo;
