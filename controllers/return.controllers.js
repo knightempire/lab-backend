@@ -1,6 +1,5 @@
 //controllers/return.controllers.js
 const Requests = require('../models/requests.model');
-const mongoose = require('mongoose');
 const Products = require('../models/product.model');
 const moment = require('moment-timezone');
 const { deleteRowbyReqID } = require('../middleware/googlesheet');
@@ -36,9 +35,9 @@ const returnProducts = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // if (request.requestStatus !== 'approved' || request.requestStatus !== 'reIssued') {
-        //     return res.status(400).json({ message: 'Request is not approved' });
-        // }
+        if (request.requestStatus !== 'approved' || request.requestStatus !== 'reIssued') {
+            return res.status(400).json({ message: 'Request is not approved' });
+        }
 
         // Find the issued item by issuedProductId
         const issuedItem = request.issued.find(
@@ -84,6 +83,8 @@ const returnProducts = async (req, res) => {
         }
 
         await request.save();
+
+        await Products.updateOne({ _id: product._id }, { $inc: { inStock: returnQuantity } });
 
         // Populate product name for response
         const populatedRequest = await Requests.findOne({ requestId }).populate('issued.issuedProductId', 'name');
