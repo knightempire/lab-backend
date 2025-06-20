@@ -5,7 +5,7 @@ const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
-const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail,sendUserNotifyEmail ,sendUserAcceptEmail , sendUserRejectEmail} = require('../middleware/mail/mail');
+const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail,sendUserNotifyEmail ,sendUserAcceptEmail , sendUserRejectEmail ,sendUserCollectEmail } = require('../middleware/mail/mail');
 
 const { appendRow, updateRowbyReqID } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
@@ -750,6 +750,22 @@ const collectProducts = async (req, res) => {
             console.error('Error updating Google Sheet:', sheetErr);
         }
 
+        // Format collection date and due date in Asia/Kolkata
+            const collectedMoment = moment(updatedRequest.collectedDate).tz("Asia/Kolkata");
+            const collectionDateTime = collectedMoment.format("DD/MM/YYYY HH:mm");
+
+            const adminApprovedDays = updatedRequest.adminApprovedDays || 0;
+            const newDueDate = collectedMoment.clone().add(adminApprovedDays, 'days').format("DD/MM/YYYY HH:mm");
+
+            // Send email to user
+            await sendUserCollectEmail(
+            updatedRequest.userId.email,
+            updatedRequest.userId.name,
+            updatedRequest.requestId,
+            collectionDateTime,
+            newDueDate
+            );
+
 
         return res.status(200).json({
             status: 200,
@@ -854,7 +870,7 @@ const remainderMail = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await sendUserReminderEmail(user.email, user.name, request.requestId, issuedDate.format('YYYY-MM-DD'), dueDate.format('YYYY-MM-DD'));
+        await sendUserReminderEmail(user.email, user.name, request.requestId, issuedDate.format('DD-MM-YYYY'), dueDate.format('DD-MM-YYYY'));
 
         console.log(`Reminder email sent to ${user.email} for requestId: ${id}`);
 

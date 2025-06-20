@@ -573,7 +573,7 @@ This is to confirm that you have collected the equipment you requested. Please e
 <strong>Collection Details</strong><br>
 Request ID: ${Request_ID}<br>
 Collected On: ${Collection_Date_Time}<br>
-Updated Return Due Date: ${New_Due_Date}<br><br>
+Return Due Date: ${New_Due_Date}<br><br>
 Please retain this email for your records. If you need an extension, submit a reissue request before the due date.
 </p>
 <p class="regards-text">
