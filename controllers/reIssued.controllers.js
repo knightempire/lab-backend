@@ -75,7 +75,7 @@ const addReIssued = async (req, res) => {
             await sendStaffReNotifyEmail(
                 populatedRequest.referenceId.email,
                 populatedRequest.referenceId.name,
-                populatedRequest.userId.rollNo,
+                populatedRequest.userId.rollNo.toUpperCase(),
                 populatedRequest.userId.name,
                 requestId
             );
@@ -232,7 +232,7 @@ const approveReIssued = async (req, res) => {
             await sendStaffReAcceptEmail(
                 request.referenceId.email,
                 request.referenceId.name,
-                request.userId.rollNo,
+                request.userId.rollNo.toUpperCase(),
                 request.userId.name,
                 request.requestId
             );
@@ -294,7 +294,7 @@ const rejectReIssued = async (req, res) => {
         // Send notification email to staff if reference exists
         if (request.referenceId) {
             const ref = request.referenceId;
-            await sendStaffReRejectEmail(ref.email, ref.name, user.rollNo, requestID,reason);
+            await sendStaffReRejectEmail(ref.email, ref.name, user.rollNo.toUpperCase(), requestID,reason);
         }
 
         return res.status(200).json({

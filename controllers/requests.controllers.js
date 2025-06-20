@@ -134,7 +134,7 @@ const addRequest = async (req, res) => {
       await sendStaffNotifyEmail(
         populatedRequest.referenceId.email,
         populatedRequest.referenceId.name,
-        populatedRequest.referenceId.rollNo,
+        populatedRequest.userId.rollNo.toUpperCase(),
         populatedRequest.userId.name,
         populatedRequest.requestId
       );
@@ -442,7 +442,7 @@ const approveRequest = async (req, res) => {
 
         const requestID = approvedRequest.requestId;
         const studentName = approvedRequest.userId.name;
-        const referenceRollNo = approvedRequest.userId.rollNo;
+        const referenceRollNo = approvedRequest.userId.rollNo.toUpperCase();
 
         if (approvedRequest.referenceId) {
         const referenceEmail = approvedRequest.referenceId.email;
@@ -514,7 +514,7 @@ const rejectRequest = async (req, res) => {
         const requestID = updatedRequest.requestId;
         const studentName = updatedRequest.userId.name;
         const studentEmail = updatedRequest.userId.email;
-        const referenceRollNo = updatedRequest.userId.rollNo;
+        const studentRollNo = updatedRequest.userId.rollNo.toUpperCase();
         const reason = adminReturnMessage || 'The request has been rejected by the admin';
 
         // Format the original request date
@@ -527,7 +527,7 @@ const rejectRequest = async (req, res) => {
             const referenceEmail = updatedRequest.referenceId.email;
             const referenceName = updatedRequest.referenceId.name;
 
-            await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
+            await sendStaffRejectEmail(referenceEmail, referenceName, studentRollNo, studentName, requestID, reason);
         }
 
         // Notify student (user)
@@ -755,7 +755,7 @@ const collectProducts = async (req, res) => {
             const collectionDateTime = collectedMoment.format("DD/MM/YYYY HH:mm");
 
             const adminApprovedDays = updatedRequest.adminApprovedDays || 0;
-            const newDueDate = collectedMoment.clone().add(adminApprovedDays, 'days').format("DD/MM/YYYY HH:mm");
+            const newDueDate = collectedMoment.clone().add(adminApprovedDays, 'days').format("DD/MM/YYYY");
 
             // Send email to user
             await sendUserCollectEmail(

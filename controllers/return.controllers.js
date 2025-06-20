@@ -3,6 +3,8 @@ const Requests = require('../models/requests.model');
 const Products = require('../models/product.model');
 const moment = require('moment-timezone');
 const { deleteRowbyReqID } = require('../middleware/googlesheet');
+const { sendUserReturnEmail } = require('../middleware/mail/mail');
+
 
 const returnProducts = async (req, res) => {
     try {
@@ -71,31 +73,45 @@ const returnProducts = async (req, res) => {
             }
         }
 
+        let populatedRequest;
+
         if (status === 201) {
             request.requestStatus = 'returned';
             request.AllReturnedDate = moment.tz("Asia/Kolkata").toDate();
 
+            // Save the request before populating
+            await request.save();
+
+            // Populate product name for response and get user details for email
+            populatedRequest = await Requests.findOne({ requestId })
+                .populate('userId', 'name email')
+                .populate('issued.issuedProductId', 'name');
+
+            // Send return notification email to user
+            if (populatedRequest?.userId?.email) {
+                const userEmail = populatedRequest.userId.email;
+                const userName = populatedRequest.userId.name;
+                const returnDateTime = moment.tz(returnDate || new Date(), "Asia/Kolkata").format("DD/MM/YYYY HH:mm");
+                await sendUserReturnEmail(userEmail, userName, requestId, returnDateTime);
+            }
+
+            // Delete row from Google Sheet
             try {
                 await deleteRowbyReqID(requestId);
             } catch (sheetErr) {
                 console.error('Error deleting row from Google Sheet:', sheetErr);
             }
+        } else {
+            // Save the request before populating
+            await request.save();
+
+            // Populate product name for response
+            populatedRequest = await Requests.findOne({ requestId })
+                .populate('issued.issuedProductId', 'name');
         }
 
-        await request.save();
-
+        // Update product stock
         await Products.updateOne({ _id: product._id }, { $inc: { inStock: returnQuantity } });
-
-        // Populate product name for response and get user details for email
-        const populatedRequest = await Requests.findOne({ requestId }).populate('userId', 'name email').populate('issued.issuedProductId', 'name');
-
-        // Send return notification email to user
-        if (populatedRequest?.userId?.email) {
-            const userEmail = populatedRequest.userId.email;
-            const userName = populatedRequest.userId.name;
-            const returnDateTime = moment.tz(returnDate || new Date(), "Asia/Kolkata").format("DD/MM/YYYY HH:mm");
-            await sendUserReturnEmail(userEmail, userName, requestId, returnDateTime);
-        }
 
         res.status(status).json({
             status: 200,
@@ -107,7 +123,6 @@ const returnProducts = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 // add fetchReturn function
 const fetchReturn = async (req, res) => {
