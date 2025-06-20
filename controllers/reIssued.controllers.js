@@ -1,7 +1,7 @@
 const ReIssued = require('../models/reIssued.model');
 const Requests = require('../models/requests.model');
 const moment = require('moment-timezone');
-
+const { sendStaffReNotifyEmail,sendUserReNotifyEmail,sendUserReAcceptEmail,sendStaffReAcceptEmail,sendUserReRejectEmail,sendStaffReRejectEmail} = require('../middleware/mail/mail');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
 
 function validateRequestId(id) {
@@ -57,6 +57,30 @@ const addReIssued = async (req, res) => {
 
         await request.save();
 
+        // Fetch user and reference details for email notification
+        const populatedRequest = await Requests.findOne({ requestId })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email');
+
+        if (populatedRequest?.userId) {
+            await sendUserReNotifyEmail(
+                populatedRequest.userId.email,
+                populatedRequest.userId.name,
+                requestId
+            );
+        }
+
+        // Send staff notification if referenceId exists
+        if (populatedRequest?.referenceId) {
+            await sendStaffReNotifyEmail(
+                populatedRequest.referenceId.email,
+                populatedRequest.referenceId.name,
+                populatedRequest.userId.rollNo,
+                populatedRequest.userId.name,
+                requestId
+            );
+        }
+
         return res.status(201).json({
             status: 201,
             message: 'ReIssued created successfully',
@@ -67,6 +91,7 @@ const addReIssued = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 const updateReIssued = async (req, res) => {
     try {
@@ -152,9 +177,8 @@ const approveReIssued = async (req, res) => {
         }
 
         const reIssued = await ReIssued.findOne({ reIssuedId: id });
-
         if (!reIssued) {
-            return res.status(404).json({ message: `reIssued with ID: ${id} doesn't exist.` });
+            return res.status(404).json({ message: `ReIssued with ID: ${id} doesn't exist.` });
         }
 
         const { adminApprovedDays, adminReturnMessage } = req.body;
@@ -171,22 +195,48 @@ const approveReIssued = async (req, res) => {
             return res.status(400).json({ message: 'Admin approved days must be greater than 0' });
         }
 
+        // Update reIssued info
         reIssued.status = 'approved';
         reIssued.reviewedDate = moment.tz("Asia/Kolkata").toDate();
         reIssued.adminApprovedDays = adminApprovedDays;
         reIssued.adminReturnMessage = adminReturnMessage;
 
-        const request = await Requests.findOne({ requestId: reIssued.requestId });
+        // Fetch and populate request info
+        const request = await Requests.findOne({ requestId: reIssued.requestId })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email');
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
         request.requestStatus = 'reIssued';
-
         await request.save();
-
         await reIssued.save();
+
+
+        const collectedDate = moment(request.collectedDate).tz("Asia/Kolkata");
+        const totalDays = (request.adminApprovedDays || 0) + adminApprovedDays;
+        const approvedDueDate = collectedDate.clone().add(totalDays, 'days').format("DD/MM/YYYY HH:mm");
+
+     
+        await sendUserReAcceptEmail(
+            request.userId.email,
+            request.userId.name,
+            approvedDueDate,
+            request.requestId
+        );
+
+    
+        if (request.referenceId) {
+            await sendStaffReAcceptEmail(
+                request.referenceId.email,
+                request.referenceId.name,
+                request.userId.rollNo,
+                request.userId.name,
+                request.requestId
+            );
+        }
 
         return res.status(200).json({
             status: 200,
@@ -223,15 +273,40 @@ const rejectReIssued = async (req, res) => {
 
         await reIssued.save();
 
+        // Fetch related request and user for email notification
+        const request = await Requests.findOne({ requestId: reIssued.requestId })
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email');
+
+        if (!request) {
+            return res.status(404).json({ message: 'Associated request not found' });
+        }
+
+        const reason = reIssued.adminReturnMessage;
+        const user = request.userId;
+        const requestID = request.requestId;
+
+        // Send rejection email to user
+        if (user?.email) {
+            await sendUserReRejectEmail(user.email, user.name, requestID, reason);
+        }
+
+        // Send notification email to staff if reference exists
+        if (request.referenceId) {
+            const ref = request.referenceId;
+            await sendStaffReRejectEmail(ref.email, ref.name, user.rollNo, requestID,reason);
+        }
+
         return res.status(200).json({
             status: 200,
             message: 'ReIssued rejected successfully',
-            reIssued: reIssued,
+            reIssued,
         });
     } catch (error) {
         console.error('Error in rejectReIssued:', error);
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 module.exports = { addReIssued, updateReIssued, fetchAllReIssued, fetchReIssued, approveReIssued, rejectReIssued };
