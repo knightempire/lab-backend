@@ -5,9 +5,10 @@ const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
+const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail,sendUserNotifyEmail ,sendUserAcceptEmail , sendUserRejectEmail ,sendUserCollectEmail } = require('../middleware/mail/mail');
+
 const { appendRow, updateRowbyReqID } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
-const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail} = require('../middleware/mail/mail');
 
 // Helper to validate requestId
 function validateRequestId(id) {
@@ -33,117 +34,134 @@ const generateRequestId = async (isFaculty) => {
 };
 
 const addRequest = async (req, res) => {
-    try {
-        let {
-            userid,
-            referenceId,
-            description,
-            requestedDays,
-            requestedProducts
-        } = req.body;
+  try {
+    let {
+      userid,
+      referenceId,
+      description,
+      requestedDays,
+      requestedProducts,
+    } = req.body;
 
-        // Required fields check
-        const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
-        const missingFields = requiredFields.filter(field => req.body[field] === undefined);
+    // Required fields check
+    const requiredFields = ['userid', 'description', 'requestedDays', 'requestedProducts'];
+    const missingFields = requiredFields.filter(field => req.body[field] === undefined);
 
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                message: `Missing required fields: ${missingFields.join(', ')}`
-            });
-        }
-
-        // Validate requestedProducts
-        if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
-            return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
-        }
-        
-        for (const prod of requestedProducts) {
-            if (
-                !mongoose.Types.ObjectId.isValid(prod.productId) ||
-                typeof prod.quantity !== 'number' ||
-                prod.quantity < 1
-            ) {
-                return res.status(400).json({
-                    message: 'Each requestedProduct must have a valid productId and a positive quantity'
-                });
-            }
-        }
-
-        const requestUserId = userid;
-        const user = await Users.findById(requestUserId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const requestId = await generateRequestId(user.isFaculty);
-
-        // Prepare requestData with required fields
-        const requestData = {
-            requestId,
-            userId: requestUserId,
-            description,
-            requestedDays,
-            requestedProducts
-        };
-
-        if (!user.isFaculty) {
-            if (!referenceId) {
-                return res.status(400).json({ message: 'Reference ID is required for students' });
-            }
-            requestData.referenceId = referenceId;
-        }
-
-        // Create a new request instance
-        const newRequest = new Requests(requestData);
-
-        // Save the request to the database
-        await newRequest.save();
-
-        const populatedRequest = await Requests.findById(newRequest._id)
-            .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo')
-            .populate('requestedProducts.productId', 'product_name');
-
-        // Formating the response
-        const responseData = {
-            requestId: populatedRequest.requestId,
-            user: {
-                name: populatedRequest.userId.name,
-                email: populatedRequest.userId.email,
-                rollNo: populatedRequest.userId.rollNo
-            },
-            reference: {
-                name: populatedRequest.referenceId.name,
-                email: populatedRequest.referenceId.email,
-                rollNo: populatedRequest.referenceId.rollNo
-            },
-            description: populatedRequest.description,
-            requestedDays: populatedRequest.requestedDays,
-            requestedProducts: populatedRequest.requestedProducts.map(item => ({
-                productName: item.productId ? item.productId.product_name : null,
-                quantity: item.quantity
-            })),
-            requestDate: populatedRequest.requestDate,
-            requestStatus: populatedRequest.requestStatus
-        };
-
-    const referenceEmail = populatedRequest.referenceId.email;
-    const referenceName = populatedRequest.referenceId.name;
-    const referenceRollNo = populatedRequest.userId.rollNo;
-    const studentName = populatedRequest.userId.name;
-    const requestID = populatedRequest.requestId;
-    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
-    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
-        // Send success response
-        return res.status(201).json({
-            status: 201,
-            message: 'Request created successfully',
-            request: responseData
-        });
-    } catch (err) {
-        console.error('Error in addRequest:', err);
-        return res.status(500).json({ message: 'Server error' });
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
     }
+
+    // Validate requestedProducts
+    if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
+      return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+    }
+
+    for (const prod of requestedProducts) {
+      if (
+        !mongoose.Types.ObjectId.isValid(prod.productId) ||
+        typeof prod.quantity !== 'number' ||
+        prod.quantity < 1
+      ) {
+        return res.status(400).json({
+          message: 'Each requestedProduct must have a valid productId and a positive quantity'
+        });
+      }
+    }
+
+    const user = await Users.findById(userid);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const requestId = await generateRequestId(user.isFaculty);
+
+    // Prepare requestData with required fields
+    const requestData = {
+      requestId,
+      userId: userid,
+      description,
+      requestedDays,
+      requestedProducts
+    };
+
+    // Logic for referenceId based on isFaculty
+    if (!user.isFaculty) {
+      // For students, referenceId is mandatory
+      if (!referenceId) {
+        return res.status(400).json({ message: 'Reference ID is required for students' });
+      }
+      requestData.referenceId = referenceId;
+    } else {
+      // For faculty, set referenceId to null or omit it
+      requestData.referenceId = null;  // or simply do not set this property
+    }
+
+    const newRequest = new Requests(requestData);
+    await newRequest.save();
+
+    const populatedRequest = await Requests.findById(newRequest._id)
+      .populate('userId', 'name email rollNo')
+      .populate('referenceId', 'name email rollNo')
+      .populate('requestedProducts.productId', 'product_name');
+
+    // Format response safely checking referenceId existence
+    const responseData = {
+      requestId: populatedRequest.requestId,
+      user: {
+        name: populatedRequest.userId.name,
+        email: populatedRequest.userId.email,
+        rollNo: populatedRequest.userId.rollNo
+      },
+      reference: populatedRequest.referenceId ? {
+        name: populatedRequest.referenceId.name,
+        email: populatedRequest.referenceId.email,
+        rollNo: populatedRequest.referenceId.rollNo
+      } : null,
+      description: populatedRequest.description,
+      requestedDays: populatedRequest.requestedDays,
+      requestedProducts: populatedRequest.requestedProducts.map(item => ({
+        productName: item.productId ? item.productId.product_name : null,
+        quantity: item.quantity
+      })),
+      requestDate: populatedRequest.requestDate,
+      requestStatus: populatedRequest.requestStatus
+    };
+
+    // Only send email notification if reference exists
+    if (populatedRequest.referenceId) {
+      await sendStaffNotifyEmail(
+        populatedRequest.referenceId.email,
+        populatedRequest.referenceId.name,
+        populatedRequest.referenceId.rollNo,
+        populatedRequest.userId.name,
+        populatedRequest.requestId
+      );
+    }
+
+    const moment = require('moment-timezone');
+
+    const currentDate = moment().tz('Asia/Kolkata').format('DD/MM/YYYY HH:mm');
+    
+    await sendUserNotifyEmail(
+        user.email,
+        user.name,
+        requestedDays,
+        currentDate,
+        requestId
+        );
+
+    return res.status(201).json({
+      status: 201,
+      message: 'Request created successfully',
+      request: responseData
+    });
+
+  } catch (err) {
+    console.error('Error in addRequest:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
 };
 
 const updateRequest = async (req, res) => {
@@ -159,9 +177,9 @@ const updateRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
-        if (request.requestStatus !== 'pending') {
-            return res.status(400).json({ message: 'Request is not in pending status.' });
-        }
+        // if (request.requestStatus !== 'pending') {
+        //     return res.status(400).json({ message: 'Request is not in pending status.' });
+        // }
 
         if (request.collectedDate !== null) {
             return res.status(400).json({ message: 'The products have been collected.' });
@@ -314,7 +332,7 @@ const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('userId', 'name email rollNo phoneNo')
+            .populate('userId', 'name email rollNo phoneNo isFaculty')
             .populate('referenceId', 'name email rollNo');
 
 
@@ -340,7 +358,7 @@ const fetchRequest = async (req, res) => {
 
         //Fetch request by ID and populate user references
         const request = await Requests.findOne({ requestId: id })
-            .populate('userId', 'name email rollNo phoneNo')
+            .populate('userId', 'name email rollNo phoneNo isFaculty')
             .populate('referenceId', 'name email rollNo')
             .populate('requestedProducts.productId', 'product_name')  
              .populate('issued.issuedProductId', 'product_name'); 
@@ -422,13 +440,33 @@ const approveRequest = async (req, res) => {
 
         await appendRow([id, scheduledCollectionDate,  'hold', adminApprovedDays,0]);
 
+        const requestID = approvedRequest.requestId;
+        const studentName = approvedRequest.userId.name;
+        const referenceRollNo = approvedRequest.userId.rollNo;
+
+        if (approvedRequest.referenceId) {
         const referenceEmail = approvedRequest.referenceId.email;
         const referenceName = approvedRequest.referenceId.name;
-        const referenceRollNo = approvedRequest.userId.rollNo;
-        const studentName = approvedRequest.userId.name;
-        const requestID = approvedRequest.requestId;
 
         await sendStaffAcceptEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        }
+
+          
+                const formattedRequestDate = moment(approvedRequest.requestDate)
+                .tz("Asia/Kolkata")
+                .format("DD/MM/YYYY HH:mm");
+
+                // Send email to the student
+                await sendUserAcceptEmail(
+                approvedRequest.userId.email,
+                approvedRequest.userId.name,
+                formattedRequestDate,                  
+                adminApprovedDays,                    
+                scheduledCollectionDate,     
+                requestID                         
+                );
+
+
 
         // Send success response with approved request details
         return res.status(200).json({
@@ -461,7 +499,6 @@ const rejectRequest = async (req, res) => {
             updateData.adminReturnMessage = adminReturnMessage;
         }
 
-        // Find by 'requestId' and update the request
         const updatedRequest = await Requests.findOneAndUpdate(
             { requestId: id },
             { $set: updateData },
@@ -474,17 +511,28 @@ const rejectRequest = async (req, res) => {
             return res.status(404).json({ message: `Request with ID: ${id} doesn't exist.` });
         }
 
-        const referenceEmail = updatedRequest.referenceId.email;
-        const referenceName = updatedRequest.referenceId.name;
-        const referenceRollNo = updatedRequest.userId.rollNo;
-        const studentName = updatedRequest.userId.name;
         const requestID = updatedRequest.requestId;
+        const studentName = updatedRequest.userId.name;
+        const studentEmail = updatedRequest.userId.email;
+        const referenceRollNo = updatedRequest.userId.rollNo;
         const reason = adminReturnMessage || 'The request has been rejected by the admin';
 
-        await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
+        // Format the original request date
+        const formattedRequestDate = moment(updatedRequest.requestDate)
+            .tz("Asia/Kolkata")
+            .format("DD/MM/YYYY HH:mm");
 
+        // Notify reference (staff) if present
+        if (updatedRequest.referenceId) {
+            const referenceEmail = updatedRequest.referenceId.email;
+            const referenceName = updatedRequest.referenceId.name;
 
-        // Send success response with updated request details
+            await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
+        }
+
+        // Notify student (user)
+        await sendUserRejectEmail(studentEmail, studentName, formattedRequestDate , requestID,reason );
+
         return res.status(200).json({
             status: 200,
             message: 'Request rejected successfully',
@@ -495,6 +543,7 @@ const rejectRequest = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+;
 
 const fetchUserRequests = async (req, res) => {
     try {
@@ -701,6 +750,22 @@ const collectProducts = async (req, res) => {
             console.error('Error updating Google Sheet:', sheetErr);
         }
 
+        // Format collection date and due date in Asia/Kolkata
+            const collectedMoment = moment(updatedRequest.collectedDate).tz("Asia/Kolkata");
+            const collectionDateTime = collectedMoment.format("DD/MM/YYYY HH:mm");
+
+            const adminApprovedDays = updatedRequest.adminApprovedDays || 0;
+            const newDueDate = collectedMoment.clone().add(adminApprovedDays, 'days').format("DD/MM/YYYY HH:mm");
+
+            // Send email to user
+            await sendUserCollectEmail(
+            updatedRequest.userId.email,
+            updatedRequest.userId.name,
+            updatedRequest.requestId,
+            collectionDateTime,
+            newDueDate
+            );
+
 
         return res.status(200).json({
             status: 200,
@@ -805,7 +870,7 @@ const remainderMail = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await sendUserReminderEmail(user.email, user.name, request.requestId, issuedDate.format('YYYY-MM-DD'), dueDate.format('YYYY-MM-DD'));
+        await sendUserReminderEmail(user.email, user.name, request.requestId, issuedDate.format('DD-MM-YYYY'), dueDate.format('DD-MM-YYYY'));
 
         console.log(`Reminder email sent to ${user.email} for requestId: ${id}`);
 
