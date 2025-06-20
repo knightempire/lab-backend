@@ -5,9 +5,10 @@ const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
+const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail,sendUserNotifyEmail ,sendUserAcceptEmail , sendUserRejectEmail} = require('../middleware/mail/mail');
+
 const { appendRow, updateRowbyReqID } = require('../middleware/googlesheet');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
-const { sendStaffNotifyEmail ,sendStaffAcceptEmail, sendStaffRejectEmail} = require('../middleware/mail/mail');
 
 // Helper to validate requestId
 function validateRequestId(id) {
@@ -138,6 +139,18 @@ const addRequest = async (req, res) => {
         populatedRequest.requestId
       );
     }
+
+    const moment = require('moment-timezone');
+
+    const currentDate = moment().tz('Asia/Kolkata').format('DD/MM/YYYY HH:mm');
+    
+    await sendUserNotifyEmail(
+        user.email,
+        user.name,
+        requestedDays,
+        currentDate,
+        requestId
+        );
 
     return res.status(201).json({
       status: 201,
@@ -438,6 +451,23 @@ const approveRequest = async (req, res) => {
         await sendStaffAcceptEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
         }
 
+          
+                const formattedRequestDate = moment(approvedRequest.requestDate)
+                .tz("Asia/Kolkata")
+                .format("DD/MM/YYYY HH:mm");
+
+                // Send email to the student
+                await sendUserAcceptEmail(
+                approvedRequest.userId.email,
+                approvedRequest.userId.name,
+                formattedRequestDate,                  
+                adminApprovedDays,                    
+                scheduledCollectionDate,     
+                requestID                         
+                );
+
+
+
         // Send success response with approved request details
         return res.status(200).json({
             status: 200,
@@ -469,7 +499,6 @@ const rejectRequest = async (req, res) => {
             updateData.adminReturnMessage = adminReturnMessage;
         }
 
-        // Find by 'requestId' and update the request
         const updatedRequest = await Requests.findOneAndUpdate(
             { requestId: id },
             { $set: updateData },
@@ -484,10 +513,16 @@ const rejectRequest = async (req, res) => {
 
         const requestID = updatedRequest.requestId;
         const studentName = updatedRequest.userId.name;
+        const studentEmail = updatedRequest.userId.email;
         const referenceRollNo = updatedRequest.userId.rollNo;
         const reason = adminReturnMessage || 'The request has been rejected by the admin';
 
-        // Send email only if referenceId is present (i.e., for students)
+        // Format the original request date
+        const formattedRequestDate = moment(updatedRequest.requestDate)
+            .tz("Asia/Kolkata")
+            .format("DD/MM/YYYY HH:mm");
+
+        // Notify reference (staff) if present
         if (updatedRequest.referenceId) {
             const referenceEmail = updatedRequest.referenceId.email;
             const referenceName = updatedRequest.referenceId.name;
@@ -495,8 +530,9 @@ const rejectRequest = async (req, res) => {
             await sendStaffRejectEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID, reason);
         }
 
+        // Notify student (user)
+        await sendUserRejectEmail(studentEmail, studentName, formattedRequestDate , requestID,reason );
 
-        // Send success response with updated request details
         return res.status(200).json({
             status: 200,
             message: 'Request rejected successfully',
@@ -507,6 +543,7 @@ const rejectRequest = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+;
 
 const fetchUserRequests = async (req, res) => {
     try {
