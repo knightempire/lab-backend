@@ -920,7 +920,7 @@ const delayMail = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await sendUserDelayEmail(user.email, user.name, request.requestId, issuedDate.format('YYYY-MM-DD'), dueDate.format('YYYY-MM-DD'));
+        await sendUserDelayEmail(user.email, user.name, request.requestId, issuedDate.format('DD-MM-YYYY'), dueDate.format('DD-MM-YYYY'));
 
         console.log(`Delay email sent to ${user.email} for requestId: ${id}`);
 
