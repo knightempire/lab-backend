@@ -147,7 +147,7 @@ async function updateRowbyReqID(requestId, newValues) {
   const sheets = google.sheets({ version: 'v4', auth: client });
 
   const spreadsheetId = process.env.SPREADSHEET_ID;
-  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:E';
+  const fullRange = 'Sheet1!A2:E';
   const [sheetName] = fullRange.split('!');
 
   const getResponse = await sheets.spreadsheets.values.get({
@@ -156,20 +156,42 @@ async function updateRowbyReqID(requestId, newValues) {
   });
 
   const rows = getResponse.data.values || [];
+  console.log('✅ Total rows fetched:', rows.length);
+  console.log('🔍 Looking for requestId:', `"${requestId}"`);
+
   let targetRowIndex = -1;
 
   for (let i = 0; i < rows.length; i++) {
-    if ((rows[i][0] || '').trim() === requestId.trim()) {
+    const sheetRequestId = (rows[i][0] || '').trim().toUpperCase();
+
+    console.log(`Row ${i + 2}: Sheet ID = "${sheetRequestId}", Comparing to = "${requestId.trim().toUpperCase()}"`);
+
+    if (sheetRequestId === requestId.trim().toUpperCase()) {
+      console.log('✅ Exact match found at row:', i + 2);
       targetRowIndex = i;
       break;
     }
   }
 
   if (targetRowIndex === -1) {
+    console.log('❌ No exact match found.');
+    console.log('📋 All requestIds in sheet:');
+    rows.forEach((r, idx) => {
+      console.log(`[Row ${idx + 2}] "${r[0]}"`);
+    });
+
+    // Optionally try to find fuzzy matches for debugging
+    const fuzzyMatches = rows.filter(r => (r[0] || '').toLowerCase().includes(requestId.trim().toLowerCase()));
+    if (fuzzyMatches.length > 0) {
+      console.log('⚠️ Possible fuzzy matches:');
+      fuzzyMatches.forEach((r, i) => console.log(`[Row ${i + 2}] "${r[0]}"`));
+    }
+
     throw new Error(`No row found with requestId "${requestId}".`);
   }
 
   const rangeToUpdate = `${sheetName}!A${targetRowIndex + 2}:E${targetRowIndex + 2}`;
+  console.log(`✍️ Updating range: ${rangeToUpdate} with values:`, newValues);
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
@@ -179,7 +201,10 @@ async function updateRowbyReqID(requestId, newValues) {
       values: [newValues],
     },
   });
+
+  console.log('✅ Google Sheet updated successfully.');
 }
+
 
 
 async function isRequestIdExists(requestId) {
