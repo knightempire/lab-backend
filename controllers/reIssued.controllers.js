@@ -54,6 +54,7 @@ const addReIssued = async (req, res) => {
         await newReIssued.save();
 
         request.reIssued.push(newReIssuedId);
+        request.requestStatus = 'reIssued';
 
         await request.save();
 
