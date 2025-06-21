@@ -112,6 +112,11 @@ const addRequest = async (req, res) => {
                 email: populatedRequest.userId.email,
                 rollNo: populatedRequest.userId.rollNo
             },
+            reference: {
+                name: populatedRequest.referenceId.name,
+                email: populatedRequest.referenceId.email,
+                rollNo: populatedRequest.referenceId.rollNo
+            },
             description: populatedRequest.description,
             requestedDays: populatedRequest.requestedDays,
             requestedProducts: populatedRequest.requestedProducts.map(item => ({
@@ -122,21 +127,13 @@ const addRequest = async (req, res) => {
             requestStatus: populatedRequest.requestStatus
         };
 
-        if (!user.isFaculty) {
-            
-            responseData.reference = {
-                name: populatedRequest.referenceId.name,
-                email: populatedRequest.referenceId.email,
-                rollNo: populatedRequest.referenceId.rollNo
-            };
-            const referenceEmail = populatedRequest.referenceId.email;
-            const referenceName = populatedRequest.referenceId.name;
-            const referenceRollNo = populatedRequest.userId.rollNo;
-            const studentName = populatedRequest.userId.name;
-            const requestID = populatedRequest.requestId;
-            console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
-            await sendUserReminderEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
-        }
+    const referenceEmail = populatedRequest.referenceId.email;
+    const referenceName = populatedRequest.referenceId.name;
+    const referenceRollNo = populatedRequest.userId.rollNo;
+    const studentName = populatedRequest.userId.name;
+    const requestID = populatedRequest.requestId;
+    console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
+    await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
         // Send success response
         return res.status(201).json({
             status: 201,
@@ -317,16 +314,9 @@ const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
         const requests = await Requests.find()
-            .populate('userId', 'name email rollNo phoneNo')
+            .populate('userId', 'name email rollNo phoneNo isFaculty')
             .populate('referenceId', 'name email rollNo');
 
-        //No Request to display
-        if (!requests || requests.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: 'No requests found'
-            });
-        }
 
         //Send the request details
         return res.status(200).json({
