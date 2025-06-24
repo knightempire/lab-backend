@@ -1,5 +1,6 @@
 const Requests = require('../../models/requests.model');
 const Products = require('../../models/product.model');
+const ReIssued = require('../../models/reIssued.model');
 const moment = require("moment-timezone");
 
 const getTotalRequests = async (req, res) => {
@@ -48,34 +49,52 @@ const getPendingRequests = async (req, res) => {
 const getOverdueReturns = async (req, res) => {
     try {
         const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
-        
+        console.log('DEBUG: Today is', today);
+
         const overdueRequests = await Requests.find({
-            requestStatus: { $in: ["approved", "pending"] },
+            requestStatus: { $in: ["approved", "reIssued"] },
             issuedDate: { $exists: true, $ne: null },
             AllReturnedDate: null
         });
 
-        let overdueCount = 0;
-        
+        console.log('DEBUG: Found', overdueRequests.length, 'potential overdue requests');
+
+        let overdueList = [];
+
         for (let request of overdueRequests) {
-            if (request.issuedDate && request.adminApprovedDays) {
-                const returnDueDate = moment(request.issuedDate).add(request.adminApprovedDays, 'days').toDate();
-                if (returnDueDate < today) {
-                    overdueCount++;
-                }
+            console.log('DEBUG: Checking requestId:', request.requestId);
+            if (request.collectedDate && request.adminApprovedDays) {
+                // Find the latest re-issue for this requestId (if any)
+                const latestReIssue = await ReIssued.findOne(
+                    { requestId: request.requestId, adminApprovedDays: { $ne: null } }
+                ).sort({ reIssuedDate: -1 });
+
+                const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+                const totalDays = request.adminApprovedDays + reIssueDays;
+                const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+
+
+                if (dueDate < today) {
+                    overdueList.push({
+                        requestId: request.requestId,
+                        date: moment(dueDate).tz("Asia/Kolkata").format("DD/MM/YYYY")
+                    });
+                } 
+            } else {
+                console.log(`DEBUG: requestId=${request.requestId} missing collectedDate or adminApprovedDays`);
             }
         }
 
         return res.status(200).json({
             status: 200,
-            overdueReturns: overdueCount
+            overdueReturns: overdueList.length,
+            overdueRequests: overdueList
         });
     } catch (err) {
         console.error('Error in getOverdueReturns:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
-
 const getLowStockItems = async (req, res) => {
     try {
         const lowStockItems = await Products.find({ 
