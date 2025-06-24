@@ -53,22 +53,29 @@ const addRequest = async (req, res) => {
       });
     }
 
-    // Validate requestedProducts
-    if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
-      return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
-    }
+        // Validate requestedProducts
+        if (!Array.isArray(requestedProducts) || requestedProducts.length === 0) {
+            return res.status(400).json({ message: 'requestedProducts must be a non-empty array' });
+        }
+        
+        for (const prod of requestedProducts) {
+            if (
+                !mongoose.Types.ObjectId.isValid(prod.productId) ||
+                typeof prod.quantity !== 'number' ||
+                prod.quantity < 1
+            ) {
+                return res.status(400).json({
+                    message: 'Each requestedProduct must have a valid productId and a positive quantity'
+                });
+            }
+        }
 
-    for (const prod of requestedProducts) {
-      if (
-        !mongoose.Types.ObjectId.isValid(prod.productId) ||
-        typeof prod.quantity !== 'number' ||
-        prod.quantity < 1
-      ) {
-        return res.status(400).json({
-          message: 'Each requestedProduct must have a valid productId and a positive quantity'
-        });
-      }
-    }
+        for (const prod of requestedProducts) {
+            const product = await Products.findById(prod.productId);
+            if (!product) {
+                return res.status(404).json({ message: `Product not found ${prod.productId}` });
+            }
+        }
 
     const user = await Users.findById(userid);
     if (!user) {
@@ -98,70 +105,65 @@ const addRequest = async (req, res) => {
       requestData.referenceId = null;  // or simply do not set this property
     }
 
-    const newRequest = new Requests(requestData);
-    await newRequest.save();
+        // Create a new request instance
+        const newRequest = new Requests(requestData);
+
+        // Save the request to the database
+        await newRequest.save();
+
+        for (const item of requestedProducts) {
+            await Products.findByIdAndUpdate(
+                item.productId,
+                { $inc: { yetToGive: item.quantity } }
+            );
+        }
 
     const populatedRequest = await Requests.findById(newRequest._id)
       .populate('userId', 'name email rollNo')
       .populate('referenceId', 'name email rollNo')
       .populate('requestedProducts.productId', 'product_name');
 
-    // Format response safely checking referenceId existence
-    const responseData = {
-      requestId: populatedRequest.requestId,
-      user: {
-        name: populatedRequest.userId.name,
-        email: populatedRequest.userId.email,
-        rollNo: populatedRequest.userId.rollNo
-      },
-      reference: populatedRequest.referenceId ? {
-        name: populatedRequest.referenceId.name,
-        email: populatedRequest.referenceId.email,
-        rollNo: populatedRequest.referenceId.rollNo
-      } : null,
-      description: populatedRequest.description,
-      requestedDays: populatedRequest.requestedDays,
-      requestedProducts: populatedRequest.requestedProducts.map(item => ({
-        productName: item.productId ? item.productId.product_name : null,
-        quantity: item.quantity
-      })),
-      requestDate: populatedRequest.requestDate,
-      requestStatus: populatedRequest.requestStatus
-    };
-
-    // Only send email notification if reference exists
-    if (populatedRequest.referenceId) {
-      await sendStaffNotifyEmail(
-        populatedRequest.referenceId.email,
-        populatedRequest.referenceId.name,
-        populatedRequest.userId.rollNo.toUpperCase(),
-        populatedRequest.userId.name,
-        populatedRequest.requestId
-      );
+        // Formating the response
+        const responseData = {
+            requestId: populatedRequest.requestId,
+            user: {
+                name: populatedRequest.userId.name,
+                email: populatedRequest.userId.email,
+                rollNo: populatedRequest.userId.rollNo
+            },
+            description: populatedRequest.description,
+            requestedDays: populatedRequest.requestedDays,
+            requestedProducts: populatedRequest.requestedProducts.map(item => ({
+                productName: item.productId ? item.productId.product_name : null,
+                quantity: item.quantity
+            })),
+            requestDate: populatedRequest.requestDate,
+            requestStatus: populatedRequest.requestStatus
+        };
+        if (!user.isFaculty) {
+            responseData.reference = {
+                name: populatedRequest.referenceId.name,
+                email: populatedRequest.referenceId.email,
+                rollNo: populatedRequest.referenceId.rollNo
+            };
+            const referenceEmail = populatedRequest.referenceId.email;
+            const referenceName = populatedRequest.referenceId.name;
+            const referenceRollNo = populatedRequest.userId.rollNo;
+            const studentName = populatedRequest.userId.name;
+            const requestID = populatedRequest.requestId;
+            console.log("Request ID:", requestID , "Reference Email:", referenceEmail, "Reference Name:", referenceName, "Reference Roll No:", referenceRollNo, "Student Name:", studentName);
+            await sendStaffNotifyEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        }
+        // Send success response
+        return res.status(201).json({
+            status: 201,
+            message: 'Request created successfully',
+            request: responseData
+        });
+    } catch (err) {
+        console.error('Error in addRequest:', err);
+        return res.status(500).json({ message: 'Server error' });
     }
-
-    const moment = require('moment-timezone');
-
-    const currentDate = moment().tz('Asia/Kolkata').format('DD/MM/YYYY HH:mm');
-    
-    await sendUserNotifyEmail(
-        user.email,
-        user.name,
-        requestedDays,
-        currentDate,
-        requestId
-        );
-
-    return res.status(201).json({
-      status: 201,
-      message: 'Request created successfully',
-      request: responseData
-    });
-
-  } catch (err) {
-    console.error('Error in addRequest:', err);
-    return res.status(500).json({ message: 'Server error' });
-  }
 };
 
 const updateRequest = async (req, res) => {
@@ -385,8 +387,8 @@ const approveRequest = async (req, res) => {
         if (!validateRequestId(id)) {
             return res.status(400).json({ message: 'Invalid requestId format.' });
         }
-        const { issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
-
+        let { email, issued, adminReturnMessage, adminApprovedDays, scheduledCollectionDate } = req.body;
+        
         if (!Array.isArray(issued) || issued.length === 0) {
             return res.status(400).json({ message: 'Issued must be a non-empty array' });
         }
@@ -405,11 +407,19 @@ const approveRequest = async (req, res) => {
             }
         }
 
-        // Update product stock
-        for (const item of issued) {
+        const request = await Requests.findOne({ requestId: id });
+
+        for (const reqProd of request.requestedProducts) {
+            const issuedItem = issued.find(item =>
+                item.issuedProductId.toString() === reqProd.productId.toString()
+            );
+
+            const issuedQty = issuedItem ? issuedItem.issuedQuantity : 0;
+            const yetToGiveVal = reqProd.quantity - issuedQty;
+
             await Products.findByIdAndUpdate(
-                item.issuedProductId,
-                { $inc: { yetToGive: item.issuedQuantity } }
+                reqProd.productId,
+                { $inc: { yetToGive: -yetToGiveVal } }
             );
         }
 
@@ -425,7 +435,21 @@ const approveRequest = async (req, res) => {
             updateData.adminReturnMessage = adminReturnMessage;
         }
 
-        // Find by 'requestId' and update the request
+        const user = await Users.findOne({email});
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!user.isFaculty) {
+            const referenceEmail = approvedRequest.referenceId.email;
+            const referenceName = approvedRequest.referenceId.name;
+            const referenceRollNo = approvedRequest.userId.rollNo;
+            const studentName = approvedRequest.userId.name;
+            const requestID = approvedRequest.requestId;
+
+            await sendStaffAcceptEmail(referenceEmail, referenceName, referenceRollNo, studentName, requestID);
+        }
+
         const approvedRequest = await Requests.findOneAndUpdate(
             { requestId: id },
             { $set: updateData },
@@ -701,6 +725,10 @@ const collectProducts = async (req, res) => {
         const request = await Requests.findOne({ requestId: id });
         if (!request) {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
+        }
+
+        if (request.collectedDate !== null) {
+            return res.status(400).json({ message: 'The products have already been collected.' });
         }
 
         if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {

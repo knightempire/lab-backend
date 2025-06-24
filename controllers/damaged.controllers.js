@@ -6,11 +6,9 @@ const addDamaged = async (req, res) => {
     try {
         const { requestId, productId, damagedQuantity } = req.body;
         
-        //Validate ID format
-        if (!mongoose.Types.ObjectId.isValid(requestId)) {
-            return res.status(400).json({
-                message: 'Invalid request ID format',
-            });
+        // Validate requestId
+        if (!requestId || typeof requestId !== 'string' || !/^REQ-[FS]-\d{2}\d{4}$/.test(requestId)) {
+            return res.status(400).json({ message: 'Invalid requestId format' });
         }
 
         if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -35,11 +33,7 @@ const addDamaged = async (req, res) => {
         console.log('Damaged saved successfully:', newDamaged);
 
         //Send success response
-        return res.status(201).json({
-            status: 201,
-            message: 'Damaged created successfully',
-            product: newDamaged
-        });
+        return newDamaged;
     } catch (err) {
         console.log('Error in addDamaged: ', err);
         res.status(500).json({message: "Server error"});

@@ -1,6 +1,7 @@
 //controllers/return.controllers.js
 const Requests = require('../models/requests.model');
 const Products = require('../models/product.model');
+const { addDamaged } = require('./damaged.controllers');
 const moment = require('moment-timezone');
 const { deleteRowbyReqID } = require('../middleware/googlesheet');
 const { sendUserReturnEmail } = require('../middleware/mail/mail');
@@ -37,7 +38,7 @@ const returnProducts = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        if (request.requestStatus !== 'approved' && request.requestStatus !== 'reIssued') {
+        if (request.requestStatus !== 'approved' && request.requestStatus !== "reIssued") {
             return res.status(400).json({ message: 'Request is not approved' });
         }
 
@@ -53,7 +54,29 @@ const returnProducts = async (req, res) => {
         const totalReturned = issuedItem.return.reduce((sum, r) => sum + (r.returnedQuantity - r.replacedQuantity), 0);
 
         if (returnQuantity + totalReturned > issuedItem.issuedQuantity) {
-            return res.status(400).json({ message: 'Return quantity exceeds issued quantity' });
+            return res.status(400).json({ message: 'Returning quantity exceeds issued quantity' });
+        }
+
+        if (replacedQuantity > 0) {
+            if (replacedQuantity > returnQuantity) {
+                return res.status(400).json({ message: 'Replaced quantity cannot be greater than return quantity' });
+            }
+            if (replacedQuantity > issuedItem.issuedQuantity) {
+                return res.status(400).json({ message: 'Replaced quantity cannot be greater than issued quantity' });
+            }
+            if ( replacedQuantity > product.inStock) {
+                return res.status(400).json({ message: 'Not enough products in stock to replace' });
+            }
+        }
+ 
+        if (damagedQuantity > 0) {
+            const req = {};
+            req.body = {
+                requestId,
+                productId: issuedProductId,
+                damagedQuantity
+            };
+            await addDamaged(req, res);
         }
 
         issuedItem.return.push({
@@ -70,10 +93,12 @@ const returnProducts = async (req, res) => {
             if (returned < item.issuedQuantity) {
                 status = 200;
                 break;
+            }else{
+                status = 201;
             }
         }
 
-        let populatedRequest;
+        let populatedRequest = {};
 
         if (status === 201) {
             request.requestStatus = 'returned';
@@ -101,22 +126,20 @@ const returnProducts = async (req, res) => {
             } catch (sheetErr) {
                 console.error('Error deleting row from Google Sheet:', sheetErr);
             }
-        } else {
-            // Save the request before populating
-            await request.save();
-
-            // Populate product name for response
-            populatedRequest = await Requests.findOne({ requestId })
-                .populate('issued.issuedProductId', 'name');
         }
 
-        // Update product stock
-        await Products.updateOne({ _id: product._id }, { $inc: { inStock: returnQuantity } });
+        await request.save();
+        product.inStock += (returnQuantity - damagedQuantity - replacedQuantity) || 0;
+        product.damagedQuantity += damagedQuantity || 0;
+
+        await product.save();
+
+        const populatedrequest = await Requests.findOne({ requestId }).populate('issued.issuedProductId', 'name');
 
         res.status(status).json({
             status: 200,
             message: 'Product returned successfully',
-            request: populatedRequest
+            request: populatedrequest
         });
     } catch (err) {
         console.log('Error in returnProducts: ', err);
