@@ -253,9 +253,10 @@ const getStatusBreakdown = async (req, res) => {
 
 const getAdminReminder = async (req, res) => {
     try {
+        // Use lean for faster reads
         const allCollectionsRaw = await Requests.find({
             scheduledCollectionDate: { $ne: null }
-        }).select('requestId scheduledCollectionDate collectedDate requestStatus');
+        }).select('requestId scheduledCollectionDate collectedDate requestStatus').lean();
 
         const collectionDate = allCollectionsRaw.map(req => {
             const sched = moment.tz(req.scheduledCollectionDate, "DD/MM/YYYY HH:mm", "Asia/Kolkata");
@@ -268,17 +269,29 @@ const getAdminReminder = async (req, res) => {
             };
         });
 
-        // Returns logic as before
+        // Use lean for returns
         const returnRequests = await Requests.find({
             collectedDate: { $ne: null }
-        }).select('requestId collectedDate adminApprovedDays AllReturnedDate requestStatus');
+        }).select('requestId collectedDate adminApprovedDays AllReturnedDate requestStatus').lean();
+
+        // Batch fetch all relevant re-issues
+        const requestIds = returnRequests.map(r => r.requestId);
+        const allReIssues = await ReIssued.find({
+            requestId: { $in: requestIds },
+            adminApprovedDays: { $ne: null }
+        }).sort({ reIssuedDate: -1 }).lean();
+
+        // Map latest re-issue per requestId
+        const latestReIssueMap = {};
+        for (const re of allReIssues) {
+            if (!latestReIssueMap[re.requestId]) {
+                latestReIssueMap[re.requestId] = re;
+            }
+        }
 
         const returnsArray = [];
         for (let request of returnRequests) {
-            const latestReIssue = await ReIssued.findOne(
-                { requestId: request.requestId, adminApprovedDays: { $ne: null } }
-            ).sort({ reIssuedDate: -1 });
-
+            const latestReIssue = latestReIssueMap[request.requestId];
             const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
             const totalDays = (request.adminApprovedDays || 0) + (reIssueDays || 0);
 
