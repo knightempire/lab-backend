@@ -20,16 +20,16 @@ const getRequestStats = async (req, res) => {
         let pendingRequests = 0;
         const statusBreakdown = [];
 
-        counts.forEach(item => {
-            totalRequests += item.count;
-            if (item._id === "approved") activeRequests = item.count;
-            if (item._id === "pending") pendingRequests = item.count;
-            statusBreakdown.push({
-                status: item._id,
-                count: item.count
+            counts.forEach(item => {
+                const status = (item._id || '').toLowerCase();
+                totalRequests += item.count;
+                if (status === "approved" || status === "reissued") activeRequests += item.count;
+                if (status === "pending") pendingRequests = item.count;
+                statusBreakdown.push({
+                    status: item._id,
+                    count: item.count
+                });
             });
-        });
-
         return res.status(200).json({
             status: 200,
             totalRequests,
@@ -42,7 +42,6 @@ const getRequestStats = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 
 const getLowStockAndTopComponents = async (req, res) => {
