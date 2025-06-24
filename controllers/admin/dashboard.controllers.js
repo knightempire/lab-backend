@@ -44,48 +44,6 @@ const getRequestStats = async (req, res) => {
 };
 
 
-const getOverdueReturns = async (req, res) => {
-    try {
-        const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
-
-        const overdueRequests = await Requests.find({
-            requestStatus: { $in: ["approved", "reIssued"] },
-            issuedDate: { $exists: true, $ne: null },
-            AllReturnedDate: null
-        });
-
-        let overdueList = [];
-
-        for (let request of overdueRequests) {
-            if (request.collectedDate && request.adminApprovedDays) {
-                // Find the latest re-issue for this requestId (if any)
-                const latestReIssue = await ReIssued.findOne(
-                    { requestId: request.requestId, adminApprovedDays: { $ne: null } }
-                ).sort({ reIssuedDate: -1 });
-
-                const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
-                const totalDays = request.adminApprovedDays + reIssueDays;
-                const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
-
-                if (dueDate < today) {
-                    overdueList.push({
-                        requestId: request.requestId,
-                        date: dueDate
-                    });
-                }
-            }
-        }
-
-        return res.status(200).json({
-            status: 200,
-            overdueReturns: overdueList.length,
-            overdueRequests: overdueList
-        });
-    } catch (err) {
-        console.error('Error in getOverdueReturns:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
 
 const getLowStockAndTopComponents = async (req, res) => {
     try {
@@ -274,6 +232,51 @@ const getAdminReminder = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+const getOverdueReturns = async (req, res) => {
+    try {
+        const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
+
+        const overdueRequests = await Requests.find({
+            requestStatus: { $in: ["approved", "reIssued"] },
+            issuedDate: { $exists: true, $ne: null },
+            AllReturnedDate: null
+        });
+
+        let overdueList = [];
+
+        for (let request of overdueRequests) {
+            if (request.collectedDate && request.adminApprovedDays) {
+                // Find the latest re-issue for this requestId (if any)
+                const latestReIssue = await ReIssued.findOne(
+                    { requestId: request.requestId, adminApprovedDays: { $ne: null } }
+                ).sort({ reIssuedDate: -1 });
+
+                const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+                const totalDays = request.adminApprovedDays + reIssueDays;
+                const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+
+                if (dueDate < today) {
+                    overdueList.push({
+                        requestId: request.requestId,
+                        date: dueDate
+                    });
+                }
+            }
+        }
+
+        return res.status(200).json({
+            status: 200,
+            overdueReturns: overdueList.length,
+            overdueRequests: overdueList
+        });
+    } catch (err) {
+        console.error('Error in getOverdueReturns:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 
 module.exports = {
     getRequestStats,
