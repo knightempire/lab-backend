@@ -1,175 +1,58 @@
 const Requests = require('../../models/requests.model');
 const Products = require('../../models/product.model');
+const ReIssued = require('../../models/reIssued.model');
 const moment = require("moment-timezone");
 
-const getTotalRequests = async (req, res) => {
+const getRequestStats = async (req, res) => {
     try {
-        const totalCount = await Requests.countDocuments();
-        return res.status(200).json({
-            status: 200,
-            totalRequests: totalCount
-        });
-    } catch (err) {
-        console.error('Error in getTotalRequests:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getActiveRequests = async (req, res) => {
-    try {
-        const activeCount = await Requests.countDocuments({ 
-            requestStatus: "approved" 
-        });
-        return res.status(200).json({
-            status: 200,
-            activeRequests: activeCount
-        });
-    } catch (err) {
-        console.error('Error in getActiveRequests:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getPendingRequests = async (req, res) => {
-    try {
-        const pendingCount = await Requests.countDocuments({ 
-            requestStatus: "pending" 
-        });
-        return res.status(200).json({
-            status: 200,
-            pendingRequests: pendingCount
-        });
-    } catch (err) {
-        console.error('Error in getPendingRequests:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getOverdueReturns = async (req, res) => {
-    try {
-        const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
-        
-        const overdueRequests = await Requests.find({
-            requestStatus: { $in: ["approved", "pending"] },
-            issuedDate: { $exists: true, $ne: null },
-            AllReturnedDate: null
-        });
-
-        let overdueCount = 0;
-        
-        for (let request of overdueRequests) {
-            if (request.issuedDate && request.adminApprovedDays) {
-                const returnDueDate = moment(request.issuedDate).add(request.adminApprovedDays, 'days').toDate();
-                if (returnDueDate < today) {
-                    overdueCount++;
-                }
-            }
-        }
-
-        return res.status(200).json({
-            status: 200,
-            overdueReturns: overdueCount
-        });
-    } catch (err) {
-        console.error('Error in getOverdueReturns:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getLowStockItems = async (req, res) => {
-    try {
-        const lowStockItems = await Products.find({ 
-            inStock: { $lt: 10 },
-            isDisplay: true 
-        }).select('product_name inStock');
-        
-        return res.status(200).json({
-            status: 200,
-            lowStockItems: lowStockItems
-        });
-    } catch (err) {
-        console.error('Error in getLowStockItems:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getRequestCountByMonth = async (req, res) => {
-    try {
-        const requestCountByMonth = await Requests.aggregate([
+        // Aggregate all status counts
+        const counts = await Requests.aggregate([
             {
                 $group: {
-                    _id: {
-                        year: { $year: "$requestDate" },
-                        month: { $month: "$requestDate" }
-                    },
+                    _id: "$requestStatus",
                     count: { $sum: 1 }
                 }
-            },
-            {
-                $sort: { "_id.year": 1, "_id.month": 1 }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    year: "$_id.year",
-                    month: "$_id.month",
-                    count: 1
-                }
             }
         ]);
 
+        let totalRequests = 0;
+        let activeRequests = 0;
+        let pendingRequests = 0;
+        const statusBreakdown = [];
+
+            counts.forEach(item => {
+                const status = (item._id || '').toLowerCase();
+                totalRequests += item.count;
+                if (status === "approved" || status === "reissued") activeRequests += item.count;
+                if (status === "pending") pendingRequests = item.count;
+                statusBreakdown.push({
+                    status: item._id,
+                    count: item.count
+                });
+            });
         return res.status(200).json({
             status: 200,
-            requestCountByMonth: requestCountByMonth
+            totalRequests,
+            activeRequests,
+            pendingRequests,
+            statusBreakdown
         });
     } catch (err) {
-        console.error('Error in getRequestCountByMonth:', err);
+        console.error('Error in getRequestStats:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
-const getInventoryDistribution = async (req, res) => {
+
+const getLowStockAndTopComponents = async (req, res) => {
     try {
-        const inventoryStats = await Products.aggregate([
-            {
-                $match: { isDisplay: true }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalInStock: { $sum: "$inStock" },
-                    totalDamaged: { $sum: "$damagedQuantity" },
-                    totalYetToGive: { $sum: "$yetToGive" }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    inStock: "$totalInStock",
-                    damaged: "$totalDamaged",
-                    yetToGive: "$totalYetToGive"
-                }
-            }
-        ]);
+        // Fetch low stock items: inStock <= quantity / 10
+        const lowStockItems = await Products.find({
+            $expr: { $lte: ["$inStock", { $divide: ["$quantity", 10] }] },
+            isDisplay: true
+        }).select('product_name inStock quantity');
 
-        const distribution = inventoryStats.length > 0 ? inventoryStats[0] : {
-            inStock: 0,
-            damaged: 0,
-            yetToGive: 0
-        };
-
-        return res.status(200).json({
-            status: 200,
-            inventoryDistribution: distribution
-        });
-    } catch (err) {
-        console.error('Error in getInventoryDistribution:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getTopComponents = async (req, res) => {
-    try {
+        // Fetch all top components (no limit)
         const topComponents = await Requests.aggregate([
             { $unwind: "$requestedProducts" },
             {
@@ -196,89 +79,149 @@ const getTopComponents = async (req, res) => {
                     requestCount: 1
                 }
             },
-            { $sort: { totalRequested: -1 } },
-            { $limit: 10 }
+            { $sort: { totalRequested: -1 } }
         ]);
 
         return res.status(200).json({
             status: 200,
-            topComponents: topComponents
+            lowStockItems,
+            topComponents
         });
     } catch (err) {
-        console.error('Error in getTopComponents:', err);
+        console.error('Error in getLowStockAndTopComponents:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
-
-const getStatusBreakdown = async (req, res) => {
+const getRequestMonthAndInventoryStats = async (req, res) => {
     try {
-        const statusBreakdown = await Requests.aggregate([
+        // Get request count by month
+        const requestCountByMonth = await Requests.aggregate([
             {
                 $group: {
-                    _id: "$requestStatus",
+                    _id: {
+                        year: { $year: "$requestDate" },
+                        month: { $month: "$requestDate" }
+                    },
                     count: { $sum: 1 }
                 }
             },
+            { $sort: { "_id.year": 1, "_id.month": 1 } },
             {
                 $project: {
                     _id: 0,
-                    status: "$_id",
+                    year: "$_id.year",
+                    month: "$_id.month",
                     count: 1
                 }
             }
         ]);
 
+        // Get inventory distribution
+        const inventoryStats = await Products.aggregate([
+            { $match: { isDisplay: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalInStock: { $sum: "$inStock" },
+                    totalDamaged: { $sum: "$damagedQuantity" },
+                    totalYetToGive: { $sum: "$yetToGive" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    inStock: "$totalInStock",
+                    damaged: "$totalDamaged",
+                    yetToGive: "$totalYetToGive"
+                }
+            }
+        ]);
+
+        const distribution = inventoryStats.length > 0 ? inventoryStats[0] : {
+            inStock: 0,
+            damaged: 0,
+            yetToGive: 0
+        };
+
         return res.status(200).json({
             status: 200,
-            statusBreakdown: statusBreakdown
+            requestCountByMonth,
+            inventoryDistribution: distribution
         });
     } catch (err) {
-        console.error('Error in getStatusBreakdown:', err);
+        console.error('Error in getRequestMonthAndInventoryStats:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
+
+
+
 const getAdminReminder = async (req, res) => {
     try {
-        const today = moment.tz("Asia/Kolkata").startOf('day');
-        const tomorrow = moment.tz("Asia/Kolkata").add(1, 'day').startOf('day');
-        const twoDaysFromNow = moment.tz("Asia/Kolkata").add(2, 'days').startOf('day');
+        // Use lean for faster reads
+        const allCollectionsRaw = await Requests.find({
+            scheduledCollectionDate: { $ne: null }
+        }).select('requestId scheduledCollectionDate collectedDate requestStatus').lean();
 
-        const upcomingCollections = await Requests.find({
-            scheduledCollectionDate: {
-                $gte: today.toDate(),
-                $lt: twoDaysFromNow.toDate()
-            },
-            requestStatus: "approved",
-            collectedDate: null
-        }).select('requestId scheduledCollectionDate');
-
-        const upcomingReturns = await Requests.find({
-            requestStatus: "approved",
-            issuedDate: { $exists: true, $ne: null },
-            AllReturnedDate: null,
-            adminApprovedDays: { $exists: true, $ne: null }
+        const collectionDate = allCollectionsRaw.map(req => {
+            const sched = moment.tz(req.scheduledCollectionDate, "DD/MM/YYYY HH:mm", "Asia/Kolkata");
+            return {
+                requestId: req.requestId,
+                date: sched.isValid() ? sched.toDate() : null,
+                isCollected: !!req.collectedDate,
+                collectedDate: req.collectedDate || null,
+                requestStatus: req.requestStatus
+            };
         });
 
-        const returnsArray = [];
-        
-        for (let request of upcomingReturns) {
-            if (request.issuedDate && request.adminApprovedDays) {
-                const returnDueDate = moment(request.issuedDate).add(request.adminApprovedDays, 'days');
-                
-                if (returnDueDate.isBetween(today, twoDaysFromNow, null, '[)')) {
-                    returnsArray.push({
-                        requestId: request.requestId,
-                        returnDueDate: returnDueDate.toDate()
-                    });
-                }
+        // Use lean for returns
+        const returnRequests = await Requests.find({
+            collectedDate: { $ne: null }
+        }).select('requestId collectedDate adminApprovedDays AllReturnedDate requestStatus').lean();
+
+        // Batch fetch all relevant re-issues
+        const requestIds = returnRequests.map(r => r.requestId);
+        const allReIssues = await ReIssued.find({
+            requestId: { $in: requestIds },
+            adminApprovedDays: { $ne: null }
+        }).sort({ reIssuedDate: -1 }).lean();
+
+        // Map latest re-issue per requestId
+        const latestReIssueMap = {};
+        for (const re of allReIssues) {
+            if (!latestReIssueMap[re.requestId]) {
+                latestReIssueMap[re.requestId] = re;
             }
+        }
+
+        const returnsArray = [];
+        for (let request of returnRequests) {
+            const latestReIssue = latestReIssueMap[request.requestId];
+            const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+            const totalDays = (request.adminApprovedDays || 0) + (reIssueDays || 0);
+
+            const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+            const isReturned = !!request.AllReturnedDate;
+
+            const returnObj = {
+                requestId: request.requestId,
+                date: dueDate,
+                isReturned: isReturned,
+                requestStatus: request.requestStatus
+            };
+
+            if (isReturned) {
+                returnObj.returnedDate = request.AllReturnedDate;
+            }
+
+            returnsArray.push(returnObj);
         }
 
         return res.status(200).json({
             status: 200,
-            upcomingCollections: upcomingCollections,
-            upcomingReturns: returnsArray
+            collectionDate: collectionDate,
+            returns: returnsArray
         });
     } catch (err) {
         console.error('Error in getAdminReminder:', err);
@@ -286,15 +229,55 @@ const getAdminReminder = async (req, res) => {
     }
 };
 
+
+const getOverdueReturns = async (req, res) => {
+    try {
+        const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
+
+        const overdueRequests = await Requests.find({
+            requestStatus: { $in: ["approved", "reIssued"] },
+            issuedDate: { $exists: true, $ne: null },
+            AllReturnedDate: null
+        });
+
+        let overdueList = [];
+
+        for (let request of overdueRequests) {
+            if (request.collectedDate && request.adminApprovedDays) {
+                // Find the latest re-issue for this requestId (if any)
+                const latestReIssue = await ReIssued.findOne(
+                    { requestId: request.requestId, adminApprovedDays: { $ne: null } }
+                ).sort({ reIssuedDate: -1 });
+
+                const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+                const totalDays = request.adminApprovedDays + reIssueDays;
+                const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+
+                if (dueDate < today) {
+                    overdueList.push({
+                        requestId: request.requestId,
+                        date: dueDate
+                    });
+                }
+            }
+        }
+
+        return res.status(200).json({
+            status: 200,
+            overdueReturns: overdueList.length,
+            overdueRequests: overdueList
+        });
+    } catch (err) {
+        console.error('Error in getOverdueReturns:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
 module.exports = {
-    getTotalRequests,
-    getActiveRequests,
-    getPendingRequests,
+    getRequestStats,
     getOverdueReturns,
-    getLowStockItems,
-    getRequestCountByMonth,
-    getInventoryDistribution,
-    getTopComponents,
-    getStatusBreakdown,
+   getLowStockAndTopComponents,
+  getRequestMonthAndInventoryStats,
     getAdminReminder
 };
