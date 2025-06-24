@@ -46,13 +46,13 @@ const getRequestStats = async (req, res) => {
 
 const getLowStockAndTopComponents = async (req, res) => {
     try {
-        // Fetch low stock items
-        const lowStockItems = await Products.find({ 
-            inStock: { $lt: 10 },
-            isDisplay: true 
-        }).select('product_name inStock');
+        // Fetch low stock items: inStock <= quantity / 10
+        const lowStockItems = await Products.find({
+            $expr: { $lte: ["$inStock", { $divide: ["$quantity", 10] }] },
+            isDisplay: true
+        }).select('product_name inStock quantity');
 
-        // Fetch top components
+        // Fetch all top components (no limit)
         const topComponents = await Requests.aggregate([
             { $unwind: "$requestedProducts" },
             {
@@ -79,8 +79,7 @@ const getLowStockAndTopComponents = async (req, res) => {
                     requestCount: 1
                 }
             },
-            { $sort: { totalRequested: -1 } },
-            { $limit: 10 }
+            { $sort: { totalRequested: -1 } }
         ]);
 
         return res.status(200).json({
@@ -93,8 +92,6 @@ const getLowStockAndTopComponents = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
-
-
 const getRequestMonthAndInventoryStats = async (req, res) => {
     try {
         // Get request count by month
