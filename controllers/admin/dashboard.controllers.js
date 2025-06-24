@@ -87,100 +87,15 @@ const getOverdueReturns = async (req, res) => {
     }
 };
 
-const getLowStockItems = async (req, res) => {
+const getLowStockAndTopComponents = async (req, res) => {
     try {
+        // Fetch low stock items
         const lowStockItems = await Products.find({ 
             inStock: { $lt: 10 },
             isDisplay: true 
         }).select('product_name inStock');
-        
-        return res.status(200).json({
-            status: 200,
-            lowStockItems: lowStockItems
-        });
-    } catch (err) {
-        console.error('Error in getLowStockItems:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
 
-const getRequestCountByMonth = async (req, res) => {
-    try {
-        const requestCountByMonth = await Requests.aggregate([
-            {
-                $group: {
-                    _id: {
-                        year: { $year: "$requestDate" },
-                        month: { $month: "$requestDate" }
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $sort: { "_id.year": 1, "_id.month": 1 }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    year: "$_id.year",
-                    month: "$_id.month",
-                    count: 1
-                }
-            }
-        ]);
-
-        return res.status(200).json({
-            status: 200,
-            requestCountByMonth: requestCountByMonth
-        });
-    } catch (err) {
-        console.error('Error in getRequestCountByMonth:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getInventoryDistribution = async (req, res) => {
-    try {
-        const inventoryStats = await Products.aggregate([
-            {
-                $match: { isDisplay: true }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalInStock: { $sum: "$inStock" },
-                    totalDamaged: { $sum: "$damagedQuantity" },
-                    totalYetToGive: { $sum: "$yetToGive" }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    inStock: "$totalInStock",
-                    damaged: "$totalDamaged",
-                    yetToGive: "$totalYetToGive"
-                }
-            }
-        ]);
-
-        const distribution = inventoryStats.length > 0 ? inventoryStats[0] : {
-            inStock: 0,
-            damaged: 0,
-            yetToGive: 0
-        };
-
-        return res.status(200).json({
-            status: 200,
-            inventoryDistribution: distribution
-        });
-    } catch (err) {
-        console.error('Error in getInventoryDistribution:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getTopComponents = async (req, res) => {
-    try {
+        // Fetch top components
         const topComponents = await Requests.aggregate([
             { $unwind: "$requestedProducts" },
             {
@@ -213,13 +128,78 @@ const getTopComponents = async (req, res) => {
 
         return res.status(200).json({
             status: 200,
-            topComponents: topComponents
+            lowStockItems,
+            topComponents
         });
     } catch (err) {
-        console.error('Error in getTopComponents:', err);
+        console.error('Error in getLowStockAndTopComponents:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+const getRequestMonthAndInventoryStats = async (req, res) => {
+    try {
+        // Get request count by month
+        const requestCountByMonth = await Requests.aggregate([
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$requestDate" },
+                        month: { $month: "$requestDate" }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id.year": 1, "_id.month": 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    year: "$_id.year",
+                    month: "$_id.month",
+                    count: 1
+                }
+            }
+        ]);
+
+        // Get inventory distribution
+        const inventoryStats = await Products.aggregate([
+            { $match: { isDisplay: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalInStock: { $sum: "$inStock" },
+                    totalDamaged: { $sum: "$damagedQuantity" },
+                    totalYetToGive: { $sum: "$yetToGive" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    inStock: "$totalInStock",
+                    damaged: "$totalDamaged",
+                    yetToGive: "$totalYetToGive"
+                }
+            }
+        ]);
+
+        const distribution = inventoryStats.length > 0 ? inventoryStats[0] : {
+            inStock: 0,
+            damaged: 0,
+            yetToGive: 0
+        };
+
+        return res.status(200).json({
+            status: 200,
+            requestCountByMonth,
+            inventoryDistribution: distribution
+        });
+    } catch (err) {
+        console.error('Error in getRequestMonthAndInventoryStats:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 
 
 
@@ -298,9 +278,7 @@ const getAdminReminder = async (req, res) => {
 module.exports = {
     getRequestStats,
     getOverdueReturns,
-    getLowStockItems,
-    getRequestCountByMonth,
-    getInventoryDistribution,
-    getTopComponents,
+   getLowStockAndTopComponents,
+  getRequestMonthAndInventoryStats,
     getAdminReminder
 };
