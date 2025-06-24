@@ -3,48 +3,46 @@ const Products = require('../../models/product.model');
 const ReIssued = require('../../models/reIssued.model');
 const moment = require("moment-timezone");
 
-const getTotalRequests = async (req, res) => {
+const getRequestStats = async (req, res) => {
     try {
-        const totalCount = await Requests.countDocuments();
+        // Aggregate all status counts
+        const counts = await Requests.aggregate([
+            {
+                $group: {
+                    _id: "$requestStatus",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        let totalRequests = 0;
+        let activeRequests = 0;
+        let pendingRequests = 0;
+        const statusBreakdown = [];
+
+        counts.forEach(item => {
+            totalRequests += item.count;
+            if (item._id === "approved") activeRequests = item.count;
+            if (item._id === "pending") pendingRequests = item.count;
+            statusBreakdown.push({
+                status: item._id,
+                count: item.count
+            });
+        });
+
         return res.status(200).json({
             status: 200,
-            totalRequests: totalCount
+            totalRequests,
+            activeRequests,
+            pendingRequests,
+            statusBreakdown
         });
     } catch (err) {
-        console.error('Error in getTotalRequests:', err);
+        console.error('Error in getRequestStats:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
 
-const getActiveRequests = async (req, res) => {
-    try {
-        const activeCount = await Requests.countDocuments({ 
-            requestStatus: "approved" 
-        });
-        return res.status(200).json({
-            status: 200,
-            activeRequests: activeCount
-        });
-    } catch (err) {
-        console.error('Error in getActiveRequests:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getPendingRequests = async (req, res) => {
-    try {
-        const pendingCount = await Requests.countDocuments({ 
-            requestStatus: "pending" 
-        });
-        return res.status(200).json({
-            status: 200,
-            pendingRequests: pendingCount
-        });
-    } catch (err) {
-        console.error('Error in getPendingRequests:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
 
 const getOverdueReturns = async (req, res) => {
     try {
@@ -223,33 +221,7 @@ const getTopComponents = async (req, res) => {
     }
 };
 
-const getStatusBreakdown = async (req, res) => {
-    try {
-        const statusBreakdown = await Requests.aggregate([
-            {
-                $group: {
-                    _id: "$requestStatus",
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    status: "$_id",
-                    count: 1
-                }
-            }
-        ]);
 
-        return res.status(200).json({
-            status: 200,
-            statusBreakdown: statusBreakdown
-        });
-    } catch (err) {
-        console.error('Error in getStatusBreakdown:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-};
 
 const getAdminReminder = async (req, res) => {
     try {
@@ -324,14 +296,11 @@ const getAdminReminder = async (req, res) => {
 };
 
 module.exports = {
-    getTotalRequests,
-    getActiveRequests,
-    getPendingRequests,
+    getRequestStats,
     getOverdueReturns,
     getLowStockItems,
     getRequestCountByMonth,
     getInventoryDistribution,
     getTopComponents,
-    getStatusBreakdown,
     getAdminReminder
 };
