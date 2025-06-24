@@ -49,7 +49,6 @@ const getPendingRequests = async (req, res) => {
 const getOverdueReturns = async (req, res) => {
     try {
         const today = moment.tz("Asia/Kolkata").startOf('day').toDate();
-        console.log('DEBUG: Today is', today);
 
         const overdueRequests = await Requests.find({
             requestStatus: { $in: ["approved", "reIssued"] },
@@ -57,12 +56,9 @@ const getOverdueReturns = async (req, res) => {
             AllReturnedDate: null
         });
 
-        console.log('DEBUG: Found', overdueRequests.length, 'potential overdue requests');
-
         let overdueList = [];
 
         for (let request of overdueRequests) {
-            console.log('DEBUG: Checking requestId:', request.requestId);
             if (request.collectedDate && request.adminApprovedDays) {
                 // Find the latest re-issue for this requestId (if any)
                 const latestReIssue = await ReIssued.findOne(
@@ -73,15 +69,12 @@ const getOverdueReturns = async (req, res) => {
                 const totalDays = request.adminApprovedDays + reIssueDays;
                 const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
 
-
                 if (dueDate < today) {
                     overdueList.push({
                         requestId: request.requestId,
-                        date: moment(dueDate).tz("Asia/Kolkata").format("DD/MM/YYYY")
+                        date: dueDate
                     });
-                } 
-            } else {
-                console.log(`DEBUG: requestId=${request.requestId} missing collectedDate or adminApprovedDays`);
+                }
             }
         }
 
@@ -95,6 +88,7 @@ const getOverdueReturns = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 const getLowStockItems = async (req, res) => {
     try {
         const lowStockItems = await Products.find({ 
@@ -259,45 +253,56 @@ const getStatusBreakdown = async (req, res) => {
 
 const getAdminReminder = async (req, res) => {
     try {
-        const today = moment.tz("Asia/Kolkata").startOf('day');
-        const tomorrow = moment.tz("Asia/Kolkata").add(1, 'day').startOf('day');
-        const twoDaysFromNow = moment.tz("Asia/Kolkata").add(2, 'days').startOf('day');
+        const allCollectionsRaw = await Requests.find({
+            scheduledCollectionDate: { $ne: null }
+        }).select('requestId scheduledCollectionDate collectedDate requestStatus');
 
-        const upcomingCollections = await Requests.find({
-            scheduledCollectionDate: {
-                $gte: today.toDate(),
-                $lt: twoDaysFromNow.toDate()
-            },
-            requestStatus: "approved",
-            collectedDate: null
-        }).select('requestId scheduledCollectionDate');
-
-        const upcomingReturns = await Requests.find({
-            requestStatus: "approved",
-            issuedDate: { $exists: true, $ne: null },
-            AllReturnedDate: null,
-            adminApprovedDays: { $exists: true, $ne: null }
+        const collectionDate = allCollectionsRaw.map(req => {
+            const sched = moment.tz(req.scheduledCollectionDate, "DD/MM/YYYY HH:mm", "Asia/Kolkata");
+            return {
+                requestId: req.requestId,
+                date: sched.isValid() ? sched.toDate() : null,
+                isCollected: !!req.collectedDate,
+                collectedDate: req.collectedDate || null,
+                requestStatus: req.requestStatus
+            };
         });
 
+        // Returns logic as before
+        const returnRequests = await Requests.find({
+            collectedDate: { $ne: null }
+        }).select('requestId collectedDate adminApprovedDays AllReturnedDate requestStatus');
+
         const returnsArray = [];
-        
-        for (let request of upcomingReturns) {
-            if (request.issuedDate && request.adminApprovedDays) {
-                const returnDueDate = moment(request.issuedDate).add(request.adminApprovedDays, 'days');
-                
-                if (returnDueDate.isBetween(today, twoDaysFromNow, null, '[)')) {
-                    returnsArray.push({
-                        requestId: request.requestId,
-                        returnDueDate: returnDueDate.toDate()
-                    });
-                }
+        for (let request of returnRequests) {
+            const latestReIssue = await ReIssued.findOne(
+                { requestId: request.requestId, adminApprovedDays: { $ne: null } }
+            ).sort({ reIssuedDate: -1 });
+
+            const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+            const totalDays = (request.adminApprovedDays || 0) + (reIssueDays || 0);
+
+            const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+            const isReturned = !!request.AllReturnedDate;
+
+            const returnObj = {
+                requestId: request.requestId,
+                date: dueDate,
+                isReturned: isReturned,
+                requestStatus: request.requestStatus
+            };
+
+            if (isReturned) {
+                returnObj.returnedDate = request.AllReturnedDate;
             }
+
+            returnsArray.push(returnObj);
         }
 
         return res.status(200).json({
             status: 200,
-            upcomingCollections: upcomingCollections,
-            upcomingReturns: returnsArray
+            collectionDate: collectionDate,
+            returns: returnsArray
         });
     } catch (err) {
         console.error('Error in getAdminReminder:', err);
