@@ -5,6 +5,6 @@ const { admintokenValidator, tokenValidator } = require('../middleware/auth/toke
 
 reference.post('/add', tokenValidator, addReference);
 reference.put('/update/:id', admintokenValidator, updateReference);
-reference.get('/get', admintokenValidator, fetchReferences);
+reference.get('/get', tokenValidator, fetchReferences);
 
 module.exports = reference;

@@ -312,7 +312,7 @@ Just a quick reminder from Amuda-lab Equipment Management — the return due dat
 <strong>Request Details</strong><br>
 Request ID: ${Request_ID}<br>
 Issue Date: ${Collected_Date_Time}<br>
-Return Due Date: ${Return_Date_Time} – [usually one month after issue]<br><br>
+Return Due Date: ${Return_Date_Time} <br><br>
 Please make sure to return the equipment by the due date, or submit a renewal request if you still need it. Returning or renewing on time helps us ensure fair access to equipment for everyone.
 </p>
 <p class="regards-text">
