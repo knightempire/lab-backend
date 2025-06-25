@@ -110,7 +110,16 @@ const returnProducts = async (req, res) => {
                 .populate('issued.issuedProductId', 'name');
         }
 
-        // Update product stock
+        // Calculate how much to add to inStock and damagedQuantity
+        const addToStock = returnQuantity - (damagedQuantity || 0) - (replacedQuantity || 0);
+        const addToDamaged = (damagedQuantity || 0) + (replacedQuantity || 0);
+
+        // Build update object
+        const updateObj = {};
+        if (addToStock > 0) updateObj.inStock = (product.inStock || 0) + addToStock;
+        if (addToDamaged > 0) updateObj.damagedQuantity = (product.damagedQuantity || 0) + addToDamaged;
+
+        // Always update inStock and damagedQuantity, even if 0
         await Products.updateOne({ _id: product._id }, { $inc: { inStock: returnQuantity } });
 
         res.status(status).json({
