@@ -4,9 +4,10 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user.model'); 
 const Token = require('../models/token.model');
-const {createToken} = require('../middleware/auth/tokencreation'); 
+const { createToken, createRefreshToken } = require('../middleware/auth/tokencreation'); 
 const {sendregisterEmail,sendforgotEmail} = require('../middleware/mail/mail'); 
 const moment = require('moment-timezone'); 
+const jwt = require('jsonwebtoken');
 
 
 
@@ -52,30 +53,19 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email' });
     }
 
-
-    console.log('User found:', user);
-    console.log('User active:', user.isActive);
-
-    
     if (!user.isActive) {
       return res.status(400).json({ message: 'User is inactive. Please contact support.' });
     }
 
-   
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return res.status(400).json({ message: 'Invalid  password' });
     }
-
-    
-
-
 
     const userData = {
       userid: user._id,
@@ -87,10 +77,17 @@ const loginUser = async (req, res) => {
       rollNo: user.rollNo,
     };
 
-    console.log("User data prepared:", userData);
+    const token = await createToken(userData); 
+    const refreshToken = createRefreshToken(userData); 
 
-
-    const token = await createToken(userData);
+    console.log("node env",process.env.NODE_ENV )
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, // Prevents JavaScript access to the cookie
+      secure: process.env.NODE_ENV === 'production', // true in prod, false in dev
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     delete userData.secret_key;
 
@@ -352,8 +349,24 @@ const registerUser = async (req, res) => {
   };
   
   
+  const refreshAccessToken = async (req, res) => {
+  // Get refresh token from cookie
+  console.log('refreshAccessToken function called');
+  console.log('Cookies:', req.cookies);
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return res.status(401).json({ message: 'Refresh token required' });
+
+  try {
+    const userData = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY);
+    const token = await createToken(userData); // new PASETO access token
+    res.json({ token });
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired refresh token' });
+  }
+};
+
 
 
   
-module.exports = { loginUser, verifyToken , registerUser,createuserandPassword ,forgotPassword,resetPassword, verifyMainToken  };
-  
+module.exports = { loginUser, verifyToken , registerUser,createuserandPassword ,forgotPassword,resetPassword, verifyMainToken , refreshAccessToken };
+

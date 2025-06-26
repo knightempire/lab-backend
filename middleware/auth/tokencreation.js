@@ -2,9 +2,12 @@ require('dotenv').config();
 const Token = require("../../models/token.model");
 const paseto = require('paseto');
 const { V4: { sign } } = paseto;
+const jwt = require('jsonwebtoken'); // <-- Add this line
 const fs = require('fs');
 const path = require('path');
 
+const refresh_secret_key = process.env.REFRESH_SECRET_KEY;
+const refreshExpiresIn = process.env.REFRESH_EXPIRES_IN || '7d'; // fallback to 7d if not set
 const secret_key = process.env.SECRET_KEY;
 const mail_secret_key = process.env.MAIL_SECRET_KEY;
 const forgot_secret_key = process.env.FORGOT_SECRET_KEY;
@@ -36,6 +39,17 @@ async function createToken(data) {
     return token;
 }
 
+// --- ADD THIS FUNCTION ---
+function createRefreshToken(data) {
+    if (!refresh_secret_key) {
+        throw new Error('REFRESH_SECRET_KEY is not defined in the environment variables.');
+    }
+    // Do not include sensitive info in refresh token
+    const payload = { ...data };
+    delete payload.secret_key;
+    return jwt.sign(payload, refresh_secret_key, { expiresIn: refreshExpiresIn });
+}
+// --- END ADD ---
 
 async function registermailtoken(data) {
     if (!mail_secret_key) {
@@ -105,4 +119,4 @@ async function forgotmailtoken(data) {
 }
 
 
-module.exports = { createToken, registermailtoken , forgotmailtoken};
+module.exports = { createToken, createRefreshToken, registermailtoken , forgotmailtoken};

@@ -1,11 +1,12 @@
 // routes/user.js
 const express = require('express');
 const login = express.Router();  
-const { loginUser, verifyToken,registerUser, createuserandPassword ,resetPassword , forgotPassword,verifyMainToken } = require('../controllers/login.contollers');
+const { loginUser, verifyToken, registerUser, createuserandPassword, resetPassword, forgotPassword, verifyMainToken, refreshAccessToken } = require('../controllers/login.contollers');
 const {tokenValidator,verifyRegisterToken,verifyForgotToken,readverifyRegisterTokens, readverifyForgotToken} = require('../middleware/auth/tokenvalidate');
 
 
 login.post('/login', loginUser);
+login.post('/refresh-token', refreshAccessToken); // <-- add this route
 login.get('/verify-token', tokenValidator, verifyMainToken);
 
 
