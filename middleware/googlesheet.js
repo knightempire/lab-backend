@@ -94,7 +94,7 @@ async function deleteRowbyReqID(requestId) {
   const sheets = google.sheets({ version: 'v4', auth: client });
 
   const spreadsheetId = process.env.SPREADSHEET_ID;
-  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:D';
+  const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:E';
   const [sheetName] = fullRange.split('!');
 
   const getResponse = await sheets.spreadsheets.values.get({
