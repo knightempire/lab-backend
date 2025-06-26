@@ -35,6 +35,9 @@ services:
       SPREADSHEET_ID: ${SPREADSHEET_ID}
       SHEET_RANGE: ${SHEET_RANGE}
 
+      REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY}
+      REFRESH_EXPIRES_IN: ${REFRESH_EXPIRES_IN}
+      NODE_ENV: ${NODE_ENV}
     restart: unless-stopped 
 
    
