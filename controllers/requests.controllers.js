@@ -713,7 +713,7 @@ const collectProducts = async (req, res) => {
                 {
                     $inc: {
                         yetToGive: -item.issuedQuantity,
-                        inStock: -item.issuedQuantity
+                        inStock: item.issuedQuantity
                     }
                 }
             );
