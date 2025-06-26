@@ -12,6 +12,7 @@ const damagedRoutes = require('./routers/damaged');
 const loginRoutes = require('./routers/login');
 const reIssuedRoutes = require('./routers/reIssued.js');
 const dashboardRoutes = require('./routers/dashboard');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 
@@ -19,8 +20,12 @@ const port = process.env.PORT || 3002;
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: true,           // Allow all origins
+    credentials: true       // Allow cookies/credentials
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/generate-keys', ed25519KeygenMiddleware);
 
