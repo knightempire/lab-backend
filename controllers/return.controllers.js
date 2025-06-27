@@ -114,13 +114,17 @@ const returnProducts = async (req, res) => {
         const addToStock = returnQuantity - (damagedQuantity || 0) - (replacedQuantity || 0);
         const addToDamaged = (damagedQuantity || 0) + (replacedQuantity || 0);
 
-        // Build update object
+        // Only update what is needed
         const updateObj = {};
-        if (addToStock > 0) updateObj.inStock = (product.inStock || 0) + addToStock;
-        if (addToDamaged > 0) updateObj.damagedQuantity = (product.damagedQuantity || 0) + addToDamaged;
+        if (addToStock > 0) updateObj.inStock = addToStock;
+        if (addToDamaged > 0) updateObj.damagedQuantity = addToDamaged;
 
-        // Always update inStock and damagedQuantity, even if 0
-        await Products.updateOne({ _id: product._id }, { $inc: { inStock: returnQuantity } });
+        if (Object.keys(updateObj).length > 0) {
+            await Products.updateOne(
+                { _id: product._id },
+                { $inc: updateObj }
+            );
+        }
 
         res.status(status).json({
             status: 200,

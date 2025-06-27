@@ -97,6 +97,7 @@ async function deleteRowbyReqID(requestId) {
   const fullRange = process.env.SHEET_RANGE || 'Sheet1!A2:E';
   const [sheetName] = fullRange.split('!');
 
+  // Fetch all rows starting from row 2 (excluding header)
   const getResponse = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: fullRange,
@@ -105,6 +106,7 @@ async function deleteRowbyReqID(requestId) {
   const rows = getResponse.data.values || [];
   let targetRowIndex = -1;
 
+  // Find the row index (relative to A2, so add 2 for actual sheet row)
   for (let i = 0; i < rows.length; i++) {
     if ((rows[i][0] || '').trim() === requestId.trim()) {
       targetRowIndex = i;
@@ -118,6 +120,7 @@ async function deleteRowbyReqID(requestId) {
 
   const sheetId = await getSheetIdbyReqID(sheets, spreadsheetId, sheetName);
 
+  // Delete the entire row (all columns)
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
     requestBody: {
@@ -127,7 +130,7 @@ async function deleteRowbyReqID(requestId) {
             range: {
               sheetId,
               dimension: 'ROWS',
-              startIndex: targetRowIndex + 1,
+              startIndex: targetRowIndex + 1, // +1 because A2 is row 2
               endIndex: targetRowIndex + 2,
             },
           },
