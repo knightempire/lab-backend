@@ -92,7 +92,6 @@ const userStats = async (req, res) => {
                     return_date: request.AllReturnedDate
                 }
             } else{
-                console.log(request.reIssued.at(-1));
                 const reIssued = await ReIssued.findOne({ reIssuedId: request.reIssued.at(-1) });
                 return {
                     requestid: request.requestId,
@@ -112,7 +111,7 @@ const userStats = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: 'User stats fetched successfully',
-            user: user,
+            user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo },
             requests: await Promise.all(response),
         })
     } catch (err) {
@@ -121,4 +120,33 @@ const userStats = async (req, res) => {
     }
 }
 
-module.exports = { updateUser, fetchUser, userStats };
+const getRequestsandDamagedCounts = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const user = await Users.findOne({ email });
+
+        const requests = await Requests.find({ userId: user._id });
+
+        const requestsCount = requests.length;
+        const damagedItemsCount = requests.reduce((total, request) => {
+            return total + request.issued.reduce((sum, issuedItem) => {
+                return sum + issuedItem.return.reduce((rSum, rItem) => {
+                    return rSum + (rItem.userDamagedQuantity || 0);
+                }, 0);
+            }, 0);
+        }, 0);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'User stats fetched successfully',
+            requestsCount: requestsCount,
+            damagedItemsCount: damagedItemsCount,
+        });
+    } catch (err) {
+        console.error('Error in getRequestsandDamagedCounts:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+
+module.exports = { updateUser, fetchUser, userStats, getRequestsandDamagedCounts };
