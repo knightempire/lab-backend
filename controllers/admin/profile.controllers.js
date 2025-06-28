@@ -1,6 +1,6 @@
 //controllers/admin/users.controllers.js
 const Users = require('../../models/user.model');
-const mongoose = require('mongoose');
+const Requests = require('../../models/requests.model');
 
 const adminUpdateUser = async (req, res) => {
     try {
@@ -110,10 +110,23 @@ const adminFetchUser = async (req, res) => {
             return res.status(404).json({ message: `User with rollNo: ${rollNo} doesn't exist.` });
         }
 
+        const requests = await Requests.find({ userId: user._id });
+        
+        const requestsCount = requests.length;
+        const damagedItemsCount = requests.reduce((total, request) => {
+            return total + request.issued.reduce((sum, issuedItem) => {
+                return sum + issuedItem.return.reduce((rSum, rItem) => {
+                    return rSum + (rItem.userDamagedQuantity || 0);
+                }, 0);
+            }, 0);
+        }, 0);
+
         return res.status(200).json({
             status: 200,
             message: 'User fetched successfully',
-            user: user,
+            user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo },
+            requestsCount: requestsCount,
+            damagedItemsCount: damagedItemsCount
         });
     } catch (err) {
         console.error('Error in fetchUser:', err);
