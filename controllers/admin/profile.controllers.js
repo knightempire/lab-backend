@@ -124,7 +124,7 @@ const adminFetchUser = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: 'User fetched successfully',
-            user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo },
+            user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo ,isFaculty : user.isFaculty, isAdmin: user.isAdmin, isActive: user.isActive},
             requestsCount: requestsCount,
             damagedItemsCount: damagedItemsCount
         });
