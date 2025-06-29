@@ -61,30 +61,39 @@ const adminUpdateUser = async (req, res) => {
 //Function to display all users
 const fetchAllUsers = async (req, res) => {
     try {
-        //Fetch all Users
+        // Fetch all Users
         const userData = await Users.find();
 
         let text = 'Users fetched successfully';
 
-        //No user to display
+        // No user to display
         if (userData.length === 0) {
             text = 'No User data to Display';
         }
 
-        //Send the Users details
+        // For each user, get their request count
+        const usersWithRequestCount = await Promise.all(
+            userData.map(async user => {
+                const requestsCount = await Requests.countDocuments({ userId: user._id });
+                return {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    rollNo: user.rollNo,
+                    phoneNo: user.phoneNo,
+                    isFaculty: user.isFaculty,
+                    isAdmin: user.isAdmin,
+                    isActive: user.isActive,
+                    requestsCount: requestsCount
+                };
+            })
+        );
+
+        // Send the Users details
         return res.status(200).json({
             status: 200,
             message: text,
-            users: userData.map(user => ({
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                rollNo: user.rollNo,
-                phoneNo: user.phoneNo,
-                isFaculty: user.isFaculty,
-                isAdmin: user.isAdmin,
-                isActive: user.isActive,
-            })),
+            users: usersWithRequestCount,
         });
     } catch (err) {
         console.error('Error in fetchAllUsers:', err);
