@@ -3,6 +3,8 @@ const Requests = require('../models/requests.model');
 const moment = require('moment-timezone');
 const { sendStaffReNotifyEmail,sendUserReNotifyEmail,sendUserReAcceptEmail,sendStaffReAcceptEmail,sendUserReRejectEmail,sendStaffReRejectEmail} = require('../middleware/mail/mail');
 const requestIdRegex = /^REQ-[FS]-\d{2}\d{4}$/;
+const {  updateRowbyReqID } = require('../middleware/googlesheet');
+
 
 function validateRequestId(id) {
     return typeof id === 'string' && requestIdRegex.test(id);
@@ -228,6 +230,17 @@ const approveReIssued = async (req, res) => {
             request.requestId
         );
 
+
+       await updateRowbyReqID(
+                request.requestId
+                [
+                    request.requestId,
+                    0,
+                    'approved',
+                    approvedDueDate,
+                    0
+                ]
+            );
     
         if (request.referenceId) {
             await sendStaffReAcceptEmail(
