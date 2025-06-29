@@ -134,4 +134,78 @@ const adminFetchUser = async (req, res) => {
     }
 };
 
-module.exports = { adminUpdateUser, adminFetchUser, fetchAllUsers };
+//Function to fetch users with pagination (5 users per page)
+const userFetchOptimal = async (req, res) => {
+    try {
+        const { pageno } = req.params;
+        
+        // Validate page number
+        const pageNumber = parseInt(pageno);
+        if (!pageNumber || pageNumber < 1) {
+            return res.status(400).json({
+                status: 400,
+                message: 'Invalid page number. Page number must be a positive integer.',
+            });
+        }
+
+        const usersPerPage = 5;
+        const skip = (pageNumber - 1) * usersPerPage;
+
+        // Get total count of users for pagination info
+        const totalUsers = await Users.countDocuments();
+        const totalPages = Math.ceil(totalUsers / usersPerPage);
+
+        // Fetch users with pagination
+        const userData = await Users.find()
+            .skip(skip)
+            .limit(usersPerPage)
+            .select('_id name email rollNo phoneNo isFaculty isAdmin isActive');
+
+        let message = 'Users fetched successfully';
+        
+        // Check if page number exceeds total pages
+        if (pageNumber > totalPages && totalUsers > 0) {
+            return res.status(404).json({
+                status: 404,
+                message: `Page ${pageNumber} not found. Total pages available: ${totalPages}`,
+            });
+        }
+
+        // No users to display
+        if (userData.length === 0 && totalUsers === 0) {
+            message = 'No User data to Display';
+        }
+
+        // Send the paginated users details
+        return res.status(200).json({
+            status: 200,
+            message: message,
+            pagination: {
+                currentPage: pageNumber,
+                totalPages: totalPages,
+                totalUsers: totalUsers,
+                usersPerPage: usersPerPage,
+                hasNextPage: pageNumber < totalPages,
+                hasPreviousPage: pageNumber > 1
+            },
+            users: userData.map(user => ({
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                rollNo: user.rollNo,
+                phoneNo: user.phoneNo,
+                isFaculty: user.isFaculty,
+                isAdmin: user.isAdmin,
+                isActive: user.isActive,
+            })),
+        });
+    } catch (err) {
+        console.error('Error in userFetchOptimal:', err);
+        return res.status(500).json({ 
+            status: 500,
+            message: 'Server error' 
+        });
+    }
+};
+
+module.exports = { adminUpdateUser, adminFetchUser, fetchAllUsers, userFetchOptimal };
