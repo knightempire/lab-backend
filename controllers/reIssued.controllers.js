@@ -231,16 +231,16 @@ const approveReIssued = async (req, res) => {
         );
 
 
-       await updateRowbyReqID(
-                request.requestId
-                [
-                    request.requestId,
-                    0,
-                    'approved',
-                    approvedDueDate,
-                    0
-                ]
-            );
+        await updateRowbyReqID(
+            request.requestId,
+            [
+                request.requestId,
+                0, // scheduledCollectionDate (replace 0 with actual value if needed)
+                'approved',
+                approvedDueDate, // already in "DD/MM/YYYY HH:mm" format
+                0
+            ]
+        );
     
         if (request.referenceId) {
             await sendStaffReAcceptEmail(
