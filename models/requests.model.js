@@ -41,6 +41,11 @@ const returnSchema = new mongoose.Schema(
         replacedQuantity: {
             type: Number,
             default: 0
+        },
+
+        description: {
+            type: String,
+            default: null
         }
     }
 );

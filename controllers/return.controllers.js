@@ -9,7 +9,7 @@ const { sendUserReturnEmail } = require('../middleware/mail/mail');
 const returnProducts = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const { productName, returnQuantity, returnDate, damagedQuantity, userDamagedQuantity, replacedQuantity } = req.body;
+        const { productName, returnQuantity, returnDate, damagedQuantity, userDamagedQuantity, replacedQuantity, description } = req.body;
 
         // Validate requestId
         if (!requestId || typeof requestId !== 'string' || !/^REQ-[FS]-\d{2}\d{4}$/.test(requestId)) {
@@ -22,6 +22,10 @@ const returnProducts = async (req, res) => {
         // Validate returnQuantity
         if (typeof returnQuantity !== 'number' || returnQuantity < 1) {
             return res.status(400).json({ message: 'Invalid returnQuantity' });
+        }
+
+        if (description && typeof description !== 'string') {
+            return res.status(400).json({ message: 'Invalid description' });
         }
 
         // Find the product by name
@@ -61,7 +65,8 @@ const returnProducts = async (req, res) => {
             returnDate: returnDate || new Date(),
             damagedQuantity: damagedQuantity || 0,
             userDamagedQuantity: userDamagedQuantity || 0,
-            replacedQuantity: replacedQuantity || 0
+            replacedQuantity: replacedQuantity || 0,
+            description: description || null
         });
 
         let status = 201;
