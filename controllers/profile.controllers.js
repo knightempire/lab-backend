@@ -2,6 +2,7 @@
 const Users = require('../models/user.model');
 const Requests = require('../models/requests.model');
 const ReIssued = require('../models/reIssued.model');
+const moment = require('moment-timezone');
 
 const updateUser = async (req, res) => {
     try {
@@ -90,47 +91,84 @@ const userStats = async (req, res) => {
         const { email } = req.body;
 
         const user = await Users.findOne({ email });
-
         if (!user) {
             return res.status(404).json({ message: `User with email: ${email} doesn't exist.` });
         }
 
-        const requests = await Requests.find({ userId: user._id });
+        // Fetch all requests for this user
+        const requests = await Requests.find({ userId: user._id }).lean();
 
-        const response = requests.map(async (request) => {
-            if (request.reIssued.length === 0){
+        // --- Collection Dates ---
+        const collectionDate = requests
+            .filter(req => req.scheduledCollectionDate)
+            .map(req => {
+                const sched = moment.tz(req.scheduledCollectionDate, "DD/MM/YYYY HH:mm", "Asia/Kolkata");
                 return {
-                    requestid: request.requestId,
-                    requestdate: request.requestDate,
-                    adminapproveddate: request.issuedDate,
-                    status: request.requestStatus,
-                    return_date: request.AllReturnedDate
-                }
-            } else{
-                const reIssued = await ReIssued.findOne({ reIssuedId: request.reIssued.at(-1) });
-                return {
-                    requestid: request.requestId,
-                    requestdate: request.requestDate,
-                    adminapproveddate: request.issuedDate,
-                    status: request.requestStatus,
-                    reissue_requested_date: reIssued.reIssuedDate,
-                    reissue_admin_date: reIssued.reviewedDate,
-                    reissue_status: reIssued.status,
-                    return_date: request.AllReturnedDate
-                }
+                    requestId: req.requestId,
+                    date: sched.isValid() ? sched.toDate() : null,
+                    isCollected: !!req.collectedDate,
+                    collectedDate: req.collectedDate || null,
+                    requestStatus: req.requestStatus
+                };
+            });
+
+        // --- Returns ---
+        // Only requests that have been collected
+        const returnRequests = requests.filter(req => req.collectedDate);
+
+        // Batch fetch all relevant re-issues for this user's requests
+        const requestIds = returnRequests.map(r => r.requestId);
+        const allReIssues = await ReIssued.find({
+            requestId: { $in: requestIds },
+            adminApprovedDays: { $ne: null }
+        }).sort({ reIssuedDate: -1 }).lean();
+
+        // Map latest re-issue per requestId
+        const latestReIssueMap = {};
+        for (const re of allReIssues) {
+            if (!latestReIssueMap[re.requestId]) {
+                latestReIssueMap[re.requestId] = re;
             }
-        });
+        }
+
+        const returns = [];
+        for (let request of returnRequests) {
+            const latestReIssue = latestReIssueMap[request.requestId];
+            const reIssueDays = latestReIssue ? latestReIssue.adminApprovedDays : 0;
+            const totalDays = (request.adminApprovedDays || 0) + (reIssueDays || 0);
+
+            const dueDate = moment(request.collectedDate).add(totalDays, 'days').toDate();
+            const isReturned = !!request.AllReturnedDate;
+
+            const returnObj = {
+                requestId: request.requestId,
+                date: dueDate,
+                isReturned: isReturned,
+                requestStatus: request.requestStatus
+            };
+
+            if (isReturned) {
+                returnObj.returnedDate = request.AllReturnedDate;
+            }
+
+            returns.push(returnObj);
+        }
 
         return res.status(200).json({
             status: 200,
-            message: 'User stats fetched successfully',
-            user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo },
-            stats: await Promise.all(response),
-        })
+            user: {
+                name: user.name,
+                email: user.email,
+                rollNo: user.rollNo,
+                phoneNo: user.phoneNo
+            },
+            collectionDate,
+            returns
+        });
     } catch (err) {
         console.error('Error in userStats:', err);
         return res.status(500).json({ message: 'Server error' });
     }
-}
+};
 
 module.exports = { updateUser, fetchUser, userStats };
