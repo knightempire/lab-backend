@@ -134,10 +134,11 @@ const adminFetchUser = async (req, res) => {
     }
 };
 
-//Function to fetch users with pagination (5 users per page)
+//Function to fetch users with pagination and filters (5 users per page)
 const userFetchOptimal = async (req, res) => {
     try {
         const { pageno } = req.params;
+        const { role, status } = req.query;
         
         // Validate page number
         const pageNumber = parseInt(pageno);
@@ -151,15 +152,37 @@ const userFetchOptimal = async (req, res) => {
         const usersPerPage = 5;
         const skip = (pageNumber - 1) * usersPerPage;
 
-        // Get total count of users for pagination info
-        const totalUsers = await Users.countDocuments();
+        // Build filter object based on query parameters
+        const filter = {};
+        
+        // Role filter
+        if (role && role !== 'All') {
+            if (role === 'Faculty') {
+                filter.isFaculty = true;
+            } else if (role === 'Student') {
+                filter.isFaculty = false;
+            }
+        }
+        
+        // Status filter
+        if (status && status !== 'All') {
+            if (status === 'Active') {
+                filter.isActive = true;
+            } else if (status === 'Inactive') {
+                filter.isActive = false;
+            }
+        }
+
+        // Get total count of users with filters for pagination info
+        const totalUsers = await Users.countDocuments(filter);
         const totalPages = Math.ceil(totalUsers / usersPerPage);
 
-        // Fetch users with pagination
-        const userData = await Users.find()
+        // Fetch users with pagination and filters
+        const userData = await Users.find(filter)
             .skip(skip)
             .limit(usersPerPage)
-            .select('_id name email rollNo phoneNo isFaculty isAdmin isActive');
+            .select('_id name email rollNo phoneNo isFaculty isAdmin isActive')
+            .sort({ name: 1 }); // Sort by name for consistent ordering
 
         let message = 'Users fetched successfully';
         
@@ -176,10 +199,17 @@ const userFetchOptimal = async (req, res) => {
             message = 'No User data to Display';
         }
 
+        // Build applied filters info
+        const appliedFilters = {
+            role: role || 'All',
+            status: status || 'All'
+        };
+
         // Send the paginated users details
         return res.status(200).json({
             status: 200,
             message: message,
+            filters: appliedFilters,
             pagination: {
                 currentPage: pageNumber,
                 totalPages: totalPages,
@@ -197,6 +227,8 @@ const userFetchOptimal = async (req, res) => {
                 isFaculty: user.isFaculty,
                 isAdmin: user.isAdmin,
                 isActive: user.isActive,
+                role: user.isFaculty ? 'Faculty' : 'Student',
+                statusText: user.isActive ? 'Active' : 'Inactive'
             })),
         });
     } catch (err) {

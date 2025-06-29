@@ -13,4 +13,4 @@ users.put('/update', tokenValidator, updateUser);
 users.get('/get-user', tokenValidator, fetchUser);
 users.get('/stats', tokenValidator, userStats);
 
-module.exports = users;
+module.exports = users;     
