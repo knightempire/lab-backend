@@ -51,8 +51,9 @@ const verifyToken = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberme } = req.body;
 
+    console.log('Login request received:', { email, rememberme });
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email' });
@@ -78,17 +79,24 @@ const loginUser = async (req, res) => {
     };
 
     const token = await createToken(userData); 
-    const refreshToken = createRefreshToken(userData); 
+    const refreshToken = createRefreshToken(userData,rememberme); 
 
-    console.log("node env",process.env.NODE_ENV )
+    console.log("node env", process.env.NODE_ENV);
+
     // Set refresh token in HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // Prevents JavaScript access to the cookie
-      secure: process.env.NODE_ENV === 'production', // true in prod, false in dev
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    };
+    if (rememberme) {
+      cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    }
+    // If rememberme is false, do not set maxAge (session cookie)
 
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+
+    console.log('Cookie options:', cookieOptions);
     delete userData.secret_key;
 
     res.status(200).json({

@@ -59,10 +59,25 @@ const fetchUser = async (req, res) => {
             return res.status(404).json({ message: `User with rollNo: ${rollNo} doesn't exist.` });
         }
 
+        const requests = await Requests.find({ userId: user._id });
+
+        const requestsCount = requests.length;
+        const damagedItemsCount = requests.reduce((total, request) => {
+            return total + request.issued.reduce((sum, issuedItem) => {
+                return sum + issuedItem.return.reduce((rSum, rItem) => {
+                    return rSum + (rItem.userDamagedQuantity || 0);
+                }, 0);
+            }, 0);
+        }, 0);
+
         return res.status(200).json({
             status: 200,
             message: 'User fetched successfully',
             user: user,
+            stats: {
+                requestsCount: requestsCount,
+                damagedItemsCount: damagedItemsCount,
+            }
         });
     } catch (err) {
         console.error('Error in fetchUser:', err);
@@ -105,14 +120,12 @@ const userStats = async (req, res) => {
                 }
             }
         });
-        console.log(response);
-
 
         return res.status(200).json({
             status: 200,
             message: 'User stats fetched successfully',
             user: {name: user.name, email: user.email, rollNo: user.rollNo, phoneNo: user.phoneNo },
-            requests: await Promise.all(response),
+            stats: await Promise.all(response),
         })
     } catch (err) {
         console.error('Error in userStats:', err);
@@ -120,33 +133,4 @@ const userStats = async (req, res) => {
     }
 }
 
-const getRequestsandDamagedCounts = async (req, res) => {
-    try {
-        const { email } = req.body;
-
-        const user = await Users.findOne({ email });
-
-        const requests = await Requests.find({ userId: user._id });
-
-        const requestsCount = requests.length;
-        const damagedItemsCount = requests.reduce((total, request) => {
-            return total + request.issued.reduce((sum, issuedItem) => {
-                return sum + issuedItem.return.reduce((rSum, rItem) => {
-                    return rSum + (rItem.userDamagedQuantity || 0);
-                }, 0);
-            }, 0);
-        }, 0);
-
-        return res.status(200).json({
-            status: 200,
-            message: 'User stats fetched successfully',
-            requestsCount: requestsCount,
-            damagedItemsCount: damagedItemsCount,
-        });
-    } catch (err) {
-        console.error('Error in getRequestsandDamagedCounts:', err);
-        return res.status(500).json({ message: 'Server error' });
-    }
-}
-
-module.exports = { updateUser, fetchUser, userStats, getRequestsandDamagedCounts };
+module.exports = { updateUser, fetchUser, userStats };

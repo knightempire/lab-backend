@@ -40,16 +40,19 @@ async function createToken(data) {
 }
 
 // --- ADD THIS FUNCTION ---
-function createRefreshToken(data) {
+function createRefreshToken(data, rememberme) {
     if (!refresh_secret_key) {
         throw new Error('REFRESH_SECRET_KEY is not defined in the environment variables.');
     }
+    console.log("createRefreshToken")
+    console.log("rememberme",rememberme)
     // Do not include sensitive info in refresh token
     const payload = { ...data };
     delete payload.secret_key;
-    return jwt.sign(payload, refresh_secret_key, { expiresIn: refreshExpiresIn });
+
+    return jwt.sign(payload, refresh_secret_key, { expiresIn: rememberme ? refreshExpiresIn : '1d' });
 }
-// --- END ADD ---
+
 
 async function registermailtoken(data) {
     if (!mail_secret_key) {
