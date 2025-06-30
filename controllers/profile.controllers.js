@@ -86,6 +86,7 @@ const fetchUser = async (req, res) => {
     }
 }
 
+
 const userStats = async (req, res) => {
     try {
         const { email } = req.body;
@@ -97,6 +98,31 @@ const userStats = async (req, res) => {
 
         // Fetch all requests for this user
         const requests = await Requests.find({ userId: user._id }).lean();
+
+        // --- Stats ---
+        console.log('DEBUG: Total requests:', requests.length);
+        requests.forEach(req => {
+            console.log('DEBUG: RequestId:', req.requestId, 'requestedProducts:', req.requestedProducts);
+            if (Array.isArray(req.requestedProducts)) {
+                req.requestedProducts.forEach(item => {
+                    console.log('DEBUG:   Item:', item, 'quantity:', item.quantity);
+                });
+            }
+        });
+
+        const totalRequests = requests.length;
+        const totalComponents = requests.reduce((sum, req) => {
+            if (Array.isArray(req.requestedProducts) && req.requestedProducts.length > 0) {
+                const reqSum = req.requestedProducts.reduce((itemSum, item) => itemSum + (Number(item.quantity) || 0), 0);
+                console.log('DEBUG: RequestId:', req.requestId, 'requestedProducts sum for this request:', reqSum);
+                return sum + reqSum;
+            }
+            return sum;
+        }, 0);
+        console.log('DEBUG: totalComponents (requested count):', totalComponents);
+        const totalActiveRequests = requests.filter(req =>
+            ["accepted", "approved", "reIssued"].includes((req.requestStatus || '').toLowerCase())
+        ).length;
 
         // --- Collection Dates ---
         const collectionDate = requests
@@ -113,17 +139,13 @@ const userStats = async (req, res) => {
             });
 
         // --- Returns ---
-        // Only requests that have been collected
         const returnRequests = requests.filter(req => req.collectedDate);
-
-        // Batch fetch all relevant re-issues for this user's requests
         const requestIds = returnRequests.map(r => r.requestId);
         const allReIssues = await ReIssued.find({
             requestId: { $in: requestIds },
             adminApprovedDays: { $ne: null }
         }).sort({ reIssuedDate: -1 }).lean();
 
-        // Map latest re-issue per requestId
         const latestReIssueMap = {};
         for (const re of allReIssues) {
             if (!latestReIssueMap[re.requestId]) {
@@ -162,6 +184,11 @@ const userStats = async (req, res) => {
                 rollNo: user.rollNo,
                 phoneNo: user.phoneNo
             },
+            stats: {
+                totalRequests,
+                totalComponents,
+                totalActiveRequests
+            },
             collectionDate,
             returns
         });
@@ -170,5 +197,6 @@ const userStats = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 module.exports = { updateUser, fetchUser, userStats };
