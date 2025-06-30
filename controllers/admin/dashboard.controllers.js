@@ -2,6 +2,7 @@ const Requests = require('../../models/requests.model');
 const Products = require('../../models/product.model');
 const ReIssued = require('../../models/reIssued.model');
 const moment = require("moment-timezone");
+const { createNotification } = require('../notification.controllers');
 
 const getRequestStats = async (req, res) => {
     try {
@@ -51,6 +52,15 @@ const getLowStockAndTopComponents = async (req, res) => {
             $expr: { $lte: ["$inStock", { $divide: ["$quantity", 10] }] },
             isDisplay: true
         }).select('product_name inStock quantity');
+
+        if (!(!lowStockItems || lowStockItems.length === 0)) {
+            await createNotification({
+                body: {type: 'low_stock_item',
+                title: 'Low Stock Alert',
+                message: `Low stock items detected: ${lowStockItems.map(item => item.product_name).join(', ')}`,
+                relatedItemId: null}
+            }, res);
+        }
 
         // Fetch all top components (no limit)
         const topComponents = await Requests.aggregate([
