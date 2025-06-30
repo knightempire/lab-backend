@@ -7,9 +7,10 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
 product.post('/add', admintokenValidator, addProduct);
-product.post('/bulkAdd', upload.single('file'),admintokenValidator, bulkAddProducts);
+// product.post('/bulkAdd', upload.single('file'),admintokenValidator, bulkAddProducts);
 product.put('/update/:id', admintokenValidator, updateProduct);
 product.get('/get', tokenValidator, fetchAllProducts);
 product.get('/get/:id', tokenValidator, fetchProduct);
+product.post('/bulkupdate',admintokenValidator, bulkUpdateProducts);
 
 module.exports = product;
