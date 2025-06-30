@@ -132,8 +132,7 @@ const bulkUpdateProducts = async (req, res) => {
 
     for (const p of products) {
       const name = p.product_name.trim().toLowerCase();
-      const updateData = {
-        product_name: name,
+      const incData = {
         quantity: p.quantity,
         damagedQuantity: p.damagedQuantity,
         inStock: p.inStock
@@ -141,19 +140,25 @@ const bulkUpdateProducts = async (req, res) => {
 
       const existing = await Products.findOne({ product_name: name });
       if (existing) {
-        // Update existing product
-        await Products.updateOne({ product_name: name }, updateData);
+        // Increment existing product values
+        await Products.updateOne(
+          { product_name: name },
+          { $inc: incData }
+        );
         results.updated.push(name);
       } else {
         // Insert new product
-        const newProduct = await Products.create(updateData);
+        const newProduct = await Products.create({
+          product_name: name,
+          ...incData
+        });
         results.inserted.push(newProduct.product_name);
       }
     }
 
     return res.status(200).json({
       status: 200,
-      message: 'Bulk update completed',
+      message: 'Bulk update (sum) completed',
       ...results
     });
   } catch (err) {
