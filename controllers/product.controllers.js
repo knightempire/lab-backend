@@ -2,6 +2,8 @@
 const Products = require('../models/product.model');
 const mongoose = require('mongoose');
 const XLSX = require('xlsx');
+const { createNotification } = require('../controllers/notification.controllers');
+
 //Function to add Product
 const addProduct = async (req, res) => {
     try {
@@ -32,6 +34,13 @@ const addProduct = async (req, res) => {
         console.log('Saving new product to the database');
         await newProduct.save();
         console.log('Product saved successfully:', newProduct);
+
+        await createNotification({
+            body: {type: 'new_product',
+            title: 'New Product Added',
+            message: `A new product has been added.\nProduct Name: ${product_name}, Quantity: ${quantity}, Damaged Quantity: ${damagedQuantity}, In Stock: ${inStock}`,
+            relatedItemId: newProduct._id,}
+        }, res);
     
         //Send success response
         return res.status(201).json({
@@ -79,6 +88,14 @@ const bulkAddProducts = async (req, res) => {
                 created.push(newProduct.product_name);
             }
         }
+
+        await createNotification({
+            body: {type: 'new_products_uploaded',
+            title: 'New Products Added using Bulk Upload',
+            message: `new products have been added.`,
+            relatedItemId: newProduct._id,}
+        }, res);
+
         return res.status(200).json({
             message: "Bulk added Successfully",
             created,
@@ -112,6 +129,14 @@ const updateProduct = async (req, res) => {
         if (!updatedProduct) {
             return res.status(404).json({ message: `Product with Id: ${id} doesn't exist.` });
         }
+
+        await createNotification({
+            body: {type: 'stock_updated',
+            title: 'Product Stock Updated',
+            message: `Product stock has been updated.\nProduct ID: ${id}, Updated Fields: ${Object.keys(updates).join(', ')}`,
+            relatedItemId: updatedProduct._id,}
+        }, res);
+
         return res.status(200).json({
             status: 200,
             message: 'Product updated successfully',

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const damagedSchema = new mongoose.Schema(
     {
         requestId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: String,
             ref: "Requests",
             required: true
         },
