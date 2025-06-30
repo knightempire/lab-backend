@@ -2,6 +2,7 @@
 const Requests = require('../models/requests.model');
 const Users = require('../models/user.model');
 const Products = require('../models/product.model');
+const ReIssued = require('../models/reIssued.model');
 const mongoose = require('mongoose');
 const moment = require("moment-timezone");
 const { sendUserReminderEmail, sendUserDelayEmail } = require('../middleware/mail/mail');
@@ -554,24 +555,52 @@ const fetchUserRequests = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Fetch all requests for the user
         const requests = await Requests.find({ userId: user._id })
             .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo');
+            .populate('referenceId', 'name email rollNo')
+            .lean();
 
-        if (!requests) {
+        if (!requests || requests.length === 0) {
             return res.status(404).json({ message: 'No Request found' });
         }
+
+        // Collect all requestIds
+        const requestIds = requests.map(r => r.requestId);
+
+        // Fetch all re-issues for these requests, sorted by latest first
+        const allReIssues = await ReIssued.find({
+            requestId: { $in: requestIds }
+        }).sort({ reIssuedDate: -1 }).lean();
+
+        // Map latest re-issue per requestId
+        const latestReIssueMap = {};
+        for (const re of allReIssues) {
+            if (!latestReIssueMap[re.requestId]) {
+                latestReIssueMap[re.requestId] = re;
+            }
+        }
+
+        // Attach latest re-issue data to each request
+        const requestsWithReIssue = requests.map(req => {
+            const reIssue = latestReIssueMap[req.requestId];
+            return {
+                ...req,
+                latestReIssue: reIssue || null
+            };
+        });
 
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
-            requests: requests
+            requests: requestsWithReIssue
         });
     } catch (err) {
         console.error('Error in fetchUserRequests:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 const getUserRequests = async (req, res) => {
     try {
