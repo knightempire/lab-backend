@@ -92,6 +92,7 @@ const getLowStockAndTopComponents = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
 const getRequestMonthAndInventoryStats = async (req, res) => {
     try {
         // Get request count by month
@@ -116,7 +117,7 @@ const getRequestMonthAndInventoryStats = async (req, res) => {
             }
         ]);
 
-        // Get inventory distribution
+        // Get inventory distribution with onHold
         const inventoryStats = await Products.aggregate([
             { $match: { isDisplay: true } },
             {
@@ -124,7 +125,8 @@ const getRequestMonthAndInventoryStats = async (req, res) => {
                     _id: null,
                     totalInStock: { $sum: "$inStock" },
                     totalDamaged: { $sum: "$damagedQuantity" },
-                    totalYetToGive: { $sum: "$yetToGive" }
+                    totalYetToGive: { $sum: "$yetToGive" },
+                    totalQuantity: { $sum: "$quantity" }
                 }
             },
             {
@@ -132,15 +134,20 @@ const getRequestMonthAndInventoryStats = async (req, res) => {
                     _id: 0,
                     inStock: "$totalInStock",
                     damaged: "$totalDamaged",
-                    yetToGive: "$totalYetToGive"
+                    onHold: "$totalYetToGive", // This is "yet to return"
+                    yetToReturn: { $subtract: [
+                        { $subtract: ["$totalQuantity", "$totalInStock"] },
+                        "$totalDamaged"
+                    ]}
                 }
             }
         ]);
 
         const distribution = inventoryStats.length > 0 ? inventoryStats[0] : {
             inStock: 0,
+            onHold: 0,
             damaged: 0,
-            yetToGive: 0
+            yetToReturn: 0
         };
 
         return res.status(200).json({
