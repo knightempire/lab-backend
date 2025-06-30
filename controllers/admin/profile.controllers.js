@@ -156,19 +156,19 @@ const userFetchOptimal = async (req, res) => {
         const filter = {};
         
         // Role filter
-        if (role && role !== 'All') {
-            if (role === 'Faculty') {
+        if (role && role.toLowerCase() !== 'all') {
+            if (role.toLowerCase() === 'faculty') {
                 filter.isFaculty = true;
-            } else if (role === 'Student') {
+            } else if (role.toLowerCase() === 'student') {
                 filter.isFaculty = false;
             }
         }
         
         // Status filter
-        if (status && status !== 'All') {
-            if (status === 'Active') {
+        if (status && status.toLowerCase() !== 'all') {
+            if (status.toLowerCase() === 'active') {
                 filter.isActive = true;
-            } else if (status === 'Inactive') {
+            } else if (status.toLowerCase() === 'inactive') {
                 filter.isActive = false;
             }
         }
@@ -226,9 +226,7 @@ const userFetchOptimal = async (req, res) => {
                 phoneNo: user.phoneNo,
                 isFaculty: user.isFaculty,
                 isAdmin: user.isAdmin,
-                isActive: user.isActive,
-                role: user.isFaculty ? 'Faculty' : 'Student',
-                statusText: user.isActive ? 'Active' : 'Inactive'
+                isActive: user.isActive,         
             })),
         });
     } catch (err) {
