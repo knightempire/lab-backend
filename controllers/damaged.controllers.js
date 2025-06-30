@@ -1,6 +1,7 @@
 //controllers/damaged.controllers
 const Damaged = require('../models/damaged.model');
 const mongoose = require('mongoose');
+const { createNotification } = require('../controllers/notification.controllers');
 
 const addDamaged = async (req, res) => {
     try {
@@ -34,6 +35,15 @@ const addDamaged = async (req, res) => {
         await newDamaged.save();
         console.log('Damaged saved successfully:', newDamaged);
 
+        await createNotification({
+            body: {
+                type: 'damaged_product',
+                title: 'New Damaged Product',
+                message: `A new damaged product has been reported.\nProduct ID: ${productId}, Damaged Quantity: ${damagedQuantity}, Request ID: ${requestId}`,
+                relatedItemId: newDamaged._id,
+            }
+        }, res);
+
         //Send success response
         return res.status(201).json({
             status: 201,
@@ -59,7 +69,7 @@ const updateDamaged = async (req, res) => {
         if (!updatedDamaged) {
             return res.status(404).json({ message: `Damaged with ID: ${id} doesn't exist.` });
         }
-
+        
         return res.status(200).json({
             status: 200,
             message: 'Damaged updated successfully',

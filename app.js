@@ -12,6 +12,7 @@ const damagedRoutes = require('./routers/damaged');
 const loginRoutes = require('./routers/login');
 const reIssuedRoutes = require('./routers/reIssued.js');
 const dashboardRoutes = require('./routers/dashboard');
+const notificationRoutes = require('./routers/notification');
 const cookieParser = require('cookie-parser');
 
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/reference', referenceRoutes);
 app.use('/api/damaged', damagedRoutes);
 app.use('/api/reIssued', reIssuedRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notification', notificationRoutes);
 app.use('/api/', loginRoutes);
 
 connectToDb().then(() => {
