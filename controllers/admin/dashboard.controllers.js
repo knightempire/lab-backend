@@ -134,8 +134,8 @@ const getRequestMonthAndInventoryStats = async (req, res) => {
                     _id: 0,
                     inStock: "$totalInStock",
                     damaged: "$totalDamaged",
-                    yetToGive: "$totalYetToGive",
-                    onHold: { $subtract: [
+                    onHold: "$totalYetToGive", // This is "yet to return"
+                    yetToReturn: { $subtract: [
                         { $subtract: ["$totalQuantity", "$totalInStock"] },
                         "$totalDamaged"
                     ]}
@@ -147,7 +147,7 @@ const getRequestMonthAndInventoryStats = async (req, res) => {
             inStock: 0,
             onHold: 0,
             damaged: 0,
-            yetToGive: 0
+            yetToReturn: 0
         };
 
         return res.status(200).json({
