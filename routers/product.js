@@ -1,7 +1,7 @@
 // routes/products.js
 const express = require('express');
 const product = express.Router(); 
-const { addProduct, updateProduct, fetchAllProducts, fetchProduct, bulkAddProducts } = require('../controllers/product.controllers');
+const { addProduct, updateProduct, fetchAllProducts, fetchProduct, bulkUpdateProducts } = require('../controllers/product.controllers');
 const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
