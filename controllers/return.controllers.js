@@ -12,6 +12,16 @@ const returnProducts = async (req, res) => {
         const { requestId } = req.params;
         const { productName, returnQuantity, returnDate, damagedQuantity, userDamagedQuantity, replacedQuantity, description } = req.body;
 
+        console.log('Request to return products:', {
+            requestId,
+            productName,
+            returnQuantity,
+            returnDate,
+            damagedQuantity,
+            userDamagedQuantity,
+            replacedQuantity,
+            description
+        });
         // Validate requestId
         if (!requestId || typeof requestId !== 'string' || !/^REQ-[FS]-\d{2}\d{4}$/.test(requestId)) {
             return res.status(400).json({ message: 'Invalid requestId format' });
@@ -117,14 +127,14 @@ const returnProducts = async (req, res) => {
         }
 
         // Calculate how much to add to inStock and damagedQuantity
-        const addToStock = returnQuantity - (damagedQuantity || 0) - (replacedQuantity || 0);
-        const addToDamaged = damagedQuantity || 0; // Only damaged, not replaced
+        const addToStock = returnQuantity - (damagedQuantity || 0); // normal returns
+        const addToDamaged = damagedQuantity || 0; // all damaged
+        const reduceInStock = replacedQuantity || 0; // replacements
 
-        // Only update what is needed
         const updateObj = {};
         if (addToStock > 0) updateObj.inStock = addToStock;
         if (addToDamaged > 0) updateObj.damagedQuantity = addToDamaged;
-        if (replacedQuantity && replacedQuantity > 0) updateObj.inStock = (updateObj.inStock || 0) - replacedQuantity;
+        if (reduceInStock > 0) updateObj.inStock = (updateObj.inStock || 0) - reduceInStock;
 
         if (Object.keys(updateObj).length > 0) {
             await Products.updateOne(

@@ -35,14 +35,14 @@ const addDamaged = async (req, res) => {
         await newDamaged.save();
         console.log('Damaged saved successfully:', newDamaged);
 
-        await createNotification({
-            body: {
-                type: 'damaged_product',
-                title: 'New Damaged Product',
-                message: `A new damaged product has been reported.\nProduct ID: ${productId}, Damaged Quantity: ${damagedQuantity}, Request ID: ${requestId}`,
-                relatedItemId: newDamaged._id,
-            }
-        }, res);
+        // await createNotification({
+        //     body: {
+        //         type: 'damaged_product',
+        //         title: 'New Damaged Product',
+        //         message: `A new damaged product has been reported.\nProduct ID: ${productId}, Damaged Quantity: ${damagedQuantity}, Request ID: ${requestId}`,
+        //         relatedItemId: newDamaged._id,
+        //     }
+        // }, { status: () => ({ json: () => {} }) });
 
         //Send success response
         return res.status(201).json({

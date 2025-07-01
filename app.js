@@ -49,7 +49,7 @@ app.use('/api/reference', referenceRoutes);
 app.use('/api/damaged', damagedRoutes);
 app.use('/api/reIssued', reIssuedRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/notification', notificationRoutes);
+// app.use('/api/notification', notificationRoutes);
 app.use('/api/', loginRoutes);
 
 connectToDb().then(() => {

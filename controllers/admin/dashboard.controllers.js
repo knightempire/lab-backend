@@ -53,14 +53,14 @@ const getLowStockAndTopComponents = async (req, res) => {
             isDisplay: true
         }).select('product_name inStock quantity');
 
-        if (!(!lowStockItems || lowStockItems.length === 0)) {
-            await createNotification({
-                body: {type: 'low_stock_item',
-                title: 'Low Stock Alert',
-                message: `Low stock items detected: ${lowStockItems.map(item => item.product_name).join(', ')}`,
-                relatedItemId: null}
-            }, res);
-        }
+        // if (!(!lowStockItems || lowStockItems.length === 0)) {
+        //     await createNotification({
+        //         body: {type: 'low_stock_item',
+        //         title: 'Low Stock Alert',
+        //         message: `Low stock items detected: ${lowStockItems.map(item => item.product_name).join(', ')}`,
+        //         relatedItemId: null}
+        //     }, { status: () => ({ json: () => {} }) });
+        // }
 
         // Fetch all top components (no limit)
         const topComponents = await Requests.aggregate([

@@ -154,12 +154,12 @@ const addRequest = async (req, res) => {
         requestId
         );
     
-    await createNotification({
-        body: {type: 'new_request_added',
-        title: 'New Request Added',
-        message: `A new request has been added by ${populatedRequest.userId.name}.\nRequest ID: ${populatedRequest.requestId}`,
-        relatedItemId: populatedRequest._id,}
-    }, { status: () => ({ json: () => {} }) });
+    // await createNotification({
+    //     body: {type: 'new_request_added',
+    //     title: 'New Request Added',
+    //     message: `A new request has been added by ${populatedRequest.userId.name}.\nRequest ID: ${populatedRequest.requestId}`,
+    //     relatedItemId: populatedRequest._id,}
+    // }, { status: () => ({ json: () => {} }) });
 
     return res.status(201).json({
       status: 201,
@@ -476,12 +476,12 @@ const approveRequest = async (req, res) => {
                 );
 
 
-        await createNotification({
-            body: {type: 'collection_scheduled',
-            title: 'Collection Scheduled',
-            message: `Collection for request ID ${requestID} has been scheduled on ${scheduledCollectionDate}.`,
-            relatedItemId: approvedRequest._id,}
-        }, res);
+        // await createNotification({
+        //     body: {type: 'collection_scheduled',
+        //     title: 'Collection Scheduled',
+        //     message: `Collection for request ID ${requestID} has been scheduled on ${scheduledCollectionDate}.`,
+        //     relatedItemId: approvedRequest._id,}
+        // }, { status: () => ({ json: () => {} }) });
 
         // Send success response with approved request details
         return res.status(200).json({
@@ -866,12 +866,12 @@ const closeUncollectedRequests = async (req, res) => {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
 
-        await createNotification({
-            body: {type: 'status_closed',
-            title: 'Request Closed',
-            message: `Request with ID ${updatedRequest.requestId} has been closed.`,
-            relatedItemId: updatedRequest._id,}
-        }, res);
+        // await createNotification({
+        //     body: {type: 'status_closed',
+        //     title: 'Request Closed',
+        //     message: `Request with ID ${updatedRequest.requestId} has been closed.`,
+        //     relatedItemId: updatedRequest._id,}
+        // }, { status: () => ({ json: () => {} }) });
 
         return res.status(200).json({
             status: 200,
