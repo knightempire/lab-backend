@@ -8,7 +8,7 @@ const { admintokenValidator, tokenValidator } = require('../middleware/auth/toke
 users.put('/update/:rollNo', admintokenValidator, adminUpdateUser);
 users.get('/get', admintokenValidator, fetchAllUsers);
 users.get('/get/:rollNo', admintokenValidator, adminFetchUser);
-users.get('/get/optimal/:pageno', admintokenValidator, userFetchOptimal);
+users.get('/get/optimal/:pageno', admintokenValidator, fetchAllUsersoptimal);
 users.put('/update', tokenValidator, updateUser);
 users.get('/get-user', tokenValidator, fetchUser);
 users.get('/stats', tokenValidator, userStats);
