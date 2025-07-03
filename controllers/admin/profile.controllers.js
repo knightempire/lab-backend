@@ -135,7 +135,7 @@ const adminFetchUser = async (req, res) => {
 };
 
 //Function to fetch users with pagination and filters (5 users per page)
-const userFetchOptimal = async (req, res) => {
+const fetchAllUsersoptimal= async (req, res) => {
     try {
         const { pageno } = req.params;
         const { role, status } = req.query;
@@ -238,4 +238,4 @@ const userFetchOptimal = async (req, res) => {
     }
 };
 
-module.exports = { adminUpdateUser, adminFetchUser, fetchAllUsers, userFetchOptimal };
+module.exports = { adminUpdateUser, adminFetchUser, fetchAllUsers, fetchAllUsersoptimal};
