@@ -8,9 +8,9 @@ const { admintokenValidator, tokenValidator } = require('../middleware/auth/toke
 users.put('/update/:rollNo', admintokenValidator, adminUpdateUser);
 users.get('/get', admintokenValidator, fetchAllUsers);
 users.get('/get/:rollNo', admintokenValidator, adminFetchUser);
-users.get('/fetch/:pageno', admintokenValidator, userFetchOptimal);
+users.get('/get/optimal/:pageno', admintokenValidator, userFetchOptimal);
 users.put('/update', tokenValidator, updateUser);
 users.get('/get-user', tokenValidator, fetchUser);
 users.get('/stats', tokenValidator, userStats);
 
-module.exports = users;     
+module.exports = users;
