@@ -153,13 +153,6 @@ const addRequest = async (req, res) => {
         currentDate,
         requestId
         );
-    
-    // await createNotification({
-    //     body: {type: 'new_request_added',
-    //     title: 'New Request Added',
-    //     message: `A new request has been added by ${populatedRequest.userId.name}.\nRequest ID: ${populatedRequest.requestId}`,
-    //     relatedItemId: populatedRequest._id,}
-    // }, { status: () => ({ json: () => {} }) });
 
     return res.status(201).json({
       status: 201,
@@ -337,6 +330,69 @@ const updateProductRequest = async (req, res) => {
     }
 };
 
+const fetchAllRequestsOptimal = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5;
+        const skip = (page - 1) * limit;
+        const { status, usertype, products } = req.query;
+
+        let filter = {};
+        let filtersApplied = {};
+
+        if (status) {
+            filter.requestStatus = status.toLowerCase();
+            filtersApplied.status = status;
+        }
+
+        if (usertype) {
+            const isFaculty = usertype.toLowerCase() === 'faculty';
+            const users = await Users.find({ isFaculty: isFaculty }).select('_id');
+            const userIds = users.map(user => user._id);
+            filter.userId = { $in: userIds };
+            filtersApplied.usertype = usertype;
+        }
+
+        if (products) {
+            const productNames = products.split(',').map(p => new RegExp(p.trim(), 'i'));
+            const productDocs = await Products.find({ product_name: { $in: productNames } }).select('_id');
+            const productIds = productDocs.map(prod => prod._id);
+
+            filter.$or = [
+                { 'requestedProducts.productId': { $in: productIds } },
+                { 'issued.issuedProductId': { $in: productIds } }
+            ];
+            filtersApplied.products = products.split(',').map(p => p.trim().toLowerCase());
+        }
+
+        const totalRequests = await Requests.countDocuments(filter);
+        const requests = await Requests.find(filter)
+            .populate('userId', 'name email rollNo phoneNo isFaculty')
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name')
+            .populate('issued.issuedProductId', 'product_name')
+            .skip(skip)
+            .limit(limit);
+
+        const totalPages = Math.ceil(totalRequests / limit);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Requests fetched successfully',
+            data: requests,
+            pagination: {
+                totalRequests,
+                totalPages,
+                currentPage: page,
+            },
+            filtersApplied: filtersApplied,
+        });
+    } catch (err) {
+        console.error('Error in fetchAllRequestsOptimal:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 const fetchAllRequests = async (req, res) => {
     try {
         //Fetch all requests and populate user references
@@ -476,12 +532,6 @@ const approveRequest = async (req, res) => {
                 );
 
 
-        // await createNotification({
-        //     body: {type: 'collection_scheduled',
-        //     title: 'Collection Scheduled',
-        //     message: `Collection for request ID ${requestID} has been scheduled on ${scheduledCollectionDate}.`,
-        //     relatedItemId: approvedRequest._id,}
-        // }, { status: () => ({ json: () => {} }) });
 
         // Send success response with approved request details
         return res.status(200).json({
@@ -569,52 +619,24 @@ const fetchUserRequests = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Fetch all requests for the user
         const requests = await Requests.find({ userId: user._id })
             .populate('userId', 'name email rollNo')
-            .populate('referenceId', 'name email rollNo')
-            .lean();
+            .populate('referenceId', 'name email rollNo');
 
-        if (!requests || requests.length === 0) {
+        if (!requests) {
             return res.status(404).json({ message: 'No Request found' });
         }
-
-        // Collect all requestIds
-        const requestIds = requests.map(r => r.requestId);
-
-        // Fetch all re-issues for these requests, sorted by latest first
-        const allReIssues = await ReIssued.find({
-            requestId: { $in: requestIds }
-        }).sort({ reIssuedDate: -1 }).lean();
-
-        // Map latest re-issue per requestId
-        const latestReIssueMap = {};
-        for (const re of allReIssues) {
-            if (!latestReIssueMap[re.requestId]) {
-                latestReIssueMap[re.requestId] = re;
-            }
-        }
-
-        // Attach latest re-issue data to each request
-        const requestsWithReIssue = requests.map(req => {
-            const reIssue = latestReIssueMap[req.requestId];
-            return {
-                ...req,
-                latestReIssue: reIssue || null
-            };
-        });
 
         return res.status(200).json({
             status: 200,
             message: 'Requests fetched successfully',
-            requests: requestsWithReIssue
+            requests: requests
         });
     } catch (err) {
         console.error('Error in fetchUserRequests:', err);
         return res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 const getUserRequests = async (req, res) => {
     try {
@@ -866,13 +888,6 @@ const closeUncollectedRequests = async (req, res) => {
             return res.status(404).json({ message: `Request with requestId: ${id} doesn't exist.` });
         }
 
-        // await createNotification({
-        //     body: {type: 'status_closed',
-        //     title: 'Request Closed',
-        //     message: `Request with ID ${updatedRequest.requestId} has been closed.`,
-        //     relatedItemId: updatedRequest._id,}
-        // }, { status: () => ({ json: () => {} }) });
-
         return res.status(200).json({
             status: 200,
             message: 'Request closed successfully',
@@ -1000,5 +1015,6 @@ module.exports = {
     updateProductRequest,
     closeUncollectedRequests,
     remainderMail,
-    delayMail
+    delayMail,
+    fetchAllRequestsOptimal
 };

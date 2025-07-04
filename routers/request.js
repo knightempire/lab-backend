@@ -1,25 +1,22 @@
 const express = require('express');
-const request = express.Router(); 
-const { addRequest, updateRequest, fetchRequest, fetchAllRequests, approveRequest, rejectRequest, 
-    fetchUserRequests, fetchRefRequests, fetchRequestByStatus, getUserRequests, collectProducts, 
-    updateProductRequest, closeUncollectedRequests, remainderMail, delayMail } = require('../controllers/requests.controllers');
+const request = express.Router();
+const requestsController = require('../controllers/requests.controllers');
 const { admintokenValidator, tokenValidator } = require('../middleware/auth/tokenvalidate.js');
 
-request.post('/add', tokenValidator, addRequest);
-request.put('/update/:id', admintokenValidator, updateRequest);
-request.get('/get', admintokenValidator, fetchAllRequests);
-request.get('/user-get/:id', admintokenValidator, fetchUserRequests);
-request.get('/ref-get/:id', admintokenValidator, fetchRefRequests);
-request.get('/get/:id', tokenValidator, fetchRequest);
-request.post('/approve/:id', admintokenValidator, approveRequest);
-request.post('/reject/:id', admintokenValidator, rejectRequest);
-request.get('/', admintokenValidator, fetchRequestByStatus);
-request.get('/user', tokenValidator, getUserRequests);
-request.post('/collect/:id', tokenValidator, collectProducts);
-request.put('/update-product/:id', admintokenValidator, updateProductRequest);
-request.put('/failed/:id', admintokenValidator, closeUncollectedRequests);
-request.post('/reminder/:id', admintokenValidator, remainderMail);
-request.post('/delay/:id', admintokenValidator, delayMail);
-
+request.post('/add', tokenValidator, requestsController.addRequest);
+request.put('/update/:id', admintokenValidator, requestsController.updateRequest);
+request.get('/get', admintokenValidator, requestsController.fetchAllRequests);
+request.get('/get/optimal', admintokenValidator, requestsController.fetchAllRequestsOptimal);
+request.get('/user-get/:id', admintokenValidator, requestsController.fetchUserRequests);
+request.get('/ref-get/:id', admintokenValidator, requestsController.fetchRefRequests);
+request.get('/get-status', admintokenValidator, requestsController.fetchRequestByStatus);
+request.post('/user-get-request', admintokenValidator, requestsController.getUserRequests);
+request.post('/approve/:id', admintokenValidator, requestsController.approveRequest);
+request.post('/reject/:id', admintokenValidator, requestsController.rejectRequest);
+request.put('/collect/:id', admintokenValidator, requestsController.collectProducts);
+request.put('/updateproduct/:id', admintokenValidator, requestsController.updateProductRequest);
+request.put('/close/:id', admintokenValidator, requestsController.closeUncollectedRequests);
+request.get('/remainder/:id', admintokenValidator, requestsController.remainderMail);
+request.get('/delay/:id', admintokenValidator, requestsController.delayMail);
 
 module.exports = request;
