@@ -332,7 +332,8 @@ const updateProductRequest = async (req, res) => {
 
 const fetchAllRequestsOptimal = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
+        const page = parseInt(req.params.page || req.query.page || 1);
+
         const limit = 5;
         const skip = (page - 1) * limit;
         const { status, usertype, products } = req.query;

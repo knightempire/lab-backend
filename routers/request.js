@@ -6,7 +6,7 @@ const { admintokenValidator, tokenValidator } = require('../middleware/auth/toke
 request.post('/add', tokenValidator, requestsController.addRequest);
 request.put('/update/:id', admintokenValidator, requestsController.updateRequest);
 request.get('/get', admintokenValidator, requestsController.fetchAllRequests);
-request.get('/get/optimal', admintokenValidator, requestsController.fetchAllRequestsOptimal);
+request.get('/get/optimal/:page', admintokenValidator, requestsController.fetchAllRequestsOptimal);
 request.get('/user-get/:id', admintokenValidator, requestsController.fetchUserRequests);
 request.get('/ref-get/:id', admintokenValidator, requestsController.fetchRefRequests);
 request.get('/get-status', admintokenValidator, requestsController.fetchRequestByStatus);
