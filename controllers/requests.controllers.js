@@ -357,6 +357,74 @@ const fetchAllRequests = async (req, res) => {
     }
 };
 
+
+
+const fetchAllRequestsOptimal = async (req, res) => {
+    try {
+        const page = parseInt(req.params.page || req.query.page || 1);
+
+        const limit = 5;
+        const skip = (page - 1) * limit;
+        const { status, usertype, products } = req.query;
+
+        let filter = {};
+        let filtersApplied = {};
+
+        if (status) {
+            filter.requestStatus = status.toLowerCase();
+            filtersApplied.status = status;
+        }
+
+        if (usertype) {
+            const isFaculty = usertype.toLowerCase() === 'faculty';
+            const users = await Users.find({ isFaculty: isFaculty }).select('_id');
+            const userIds = users.map(user => user._id);
+            filter.userId = { $in: userIds };
+            filtersApplied.usertype = usertype;
+        }
+
+        if (products) {
+            const productNames = products.split(',').map(p => new RegExp(p.trim(), 'i'));
+            const productDocs = await Products.find({ product_name: { $in: productNames } }).select('_id');
+            const productIds = productDocs.map(prod => prod._id);
+
+            filter.$or = [
+                { 'requestedProducts.productId': { $in: productIds } },
+                { 'issued.issuedProductId': { $in: productIds } }
+            ];
+            filtersApplied.products = products.split(',').map(p => p.trim().toLowerCase());
+        }
+
+        const totalRequests = await Requests.countDocuments(filter);
+        const requests = await Requests.find(filter)
+            .populate('userId', 'name email rollNo phoneNo isFaculty')
+            .populate('referenceId', 'name email rollNo')
+            .populate('requestedProducts.productId', 'product_name')
+            .populate('issued.issuedProductId', 'product_name')
+            .skip(skip)
+            .limit(limit);
+
+        const totalPages = Math.ceil(totalRequests / limit);
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Requests fetched successfully',
+            data: requests,
+            pagination: {
+                totalRequests,
+                totalPages,
+                currentPage: page,
+            },
+            filtersApplied: filtersApplied,
+        });
+    } catch (err) {
+        console.error('Error in fetchAllRequestsOptimal:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
 const fetchRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -999,6 +1067,7 @@ module.exports = {
     collectProducts,
     updateProductRequest,
     closeUncollectedRequests,
+    fetchAllRequestsOptimal,
     remainderMail,
     delayMail
 };
