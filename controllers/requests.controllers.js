@@ -154,6 +154,13 @@ const addRequest = async (req, res) => {
         requestId
         );
 
+   // await createNotification({
+    //     body: {type: 'new_request_added',
+    //     title: 'New Request Added',
+    //     message: `A new request has been added by ${populatedRequest.userId.name}.\nRequest ID: ${populatedRequest.requestId}`,
+    //     relatedItemId: populatedRequest._id,}
+    // }, { status: () => ({ json: () => {} }) });
+
     return res.status(201).json({
       status: 201,
       message: 'Request created successfully',
