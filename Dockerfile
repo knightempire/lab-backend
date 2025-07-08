@@ -9,7 +9,7 @@ RUN npm install --only=production --ignore-scripts --prefer-offline
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 3002
 
 CMD [ "node", "app.js" ]
 
