@@ -113,7 +113,7 @@ async function forgotmailtoken(data) {
 
 
     savedToken.token = token; 
-    await savedToken.save();  
+    await savedToken.save();
 
 
     console.log('Updated Token:', savedToken);
