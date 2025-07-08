@@ -67,7 +67,7 @@ const sendforgotEmail = async (email, name) => {
 
       const mailOptions = {
         from: process.env.EMAIL_FROM,  
-        to: null,  
+        to: email,  
         subject: 'Amuda-lab- Reset Your Password',
         text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${verificationUrl}`,
         html: htmlContent,  
