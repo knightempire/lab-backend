@@ -287,10 +287,10 @@ const registerUser = async (req, res) => {
   
 
       const existingUser = await User.findOne({ email });
-      if (!existingUser) {
-        console.log('email does not exist');
-        return res.status(400).json({ message: 'email does not exist' });
-      }
+      // if (!existingUser) {
+      //   console.log('email does not exist');
+      //   return res.status(400).json({ message: 'email does not exist' });
+      // }
   
 
       const { name } = existingUser;

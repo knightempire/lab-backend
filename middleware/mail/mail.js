@@ -53,26 +53,36 @@ const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
 const sendforgotEmail = async (email, name) => {
   try {
     console.log("sendforgotEmail");
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
 
-    const tokenData = { email, name };
-    const token = await forgotmailtoken(tokenData);
-    console.log(token);
+      const tokenData = { email, name };
+      const token = await forgotmailtoken(tokenData);
+      console.log(token);
 
-    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=forgot`;
+      const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=forgot`;
 
-    const htmlContent = TEMPLATE_RESET_MAIL(name, verificationUrl);
+      const htmlContent = TEMPLATE_RESET_MAIL(name, verificationUrl);
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,  
-      to: email,  
-      subject: 'Amuda-lab- Reset Your Password',
-      text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${verificationUrl}`,
-      html: htmlContent,  
-    };
+      const mailOptions = {
+        from: process.env.EMAIL_FROM,  
+        to: null,  
+        subject: 'Amuda-lab- Reset Your Password',
+        text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${verificationUrl}`,
+        html: htmlContent,  
+      };
 
 
-    await transporter.sendMail(mailOptions);
-    console.log("Forgot password email sent successfully ✅");
+      await transporter.sendMail(mailOptions);
+      console.log("Forgot password email sent successfully ✅");
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
 
   } catch (error) {
     console.error("Error sending forgot password email ❌:", error.response || error);
