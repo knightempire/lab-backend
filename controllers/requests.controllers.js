@@ -684,6 +684,89 @@ const fetchUserRequests = async (req, res) => {
 };
 
 
+////////////////////////////optimize////////////////////////////////////////
+const fetchUserRequestsOptimal = async (req, res) => {
+    try {
+        const { id: rollNo } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const status = req.query.status;
+        const products = req.query.products ? req.query.products.split(',') : [];
+        const PAGE_SIZE = 5;
+
+        // Step 1: Get the user by roll number
+        const user = await Users.findOne({ rollNo });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Step 2: Build filter
+        const filter = { userId: user._id };
+        if (status) filter.status = status;
+        if (products.length > 0) filter.products = { $in: products };
+
+        // Step 3: Count total matching requests
+        const totalRequests = await Requests.countDocuments(filter);
+        const totalPages = Math.ceil(totalRequests / PAGE_SIZE);
+        const skip = (page - 1) * PAGE_SIZE;
+
+        // Step 4: Fetch paginated requests
+        const requests = await Requests.find(filter)
+            .skip(skip)
+            .limit(PAGE_SIZE)
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo')
+            .lean();
+
+        if (!requests || requests.length === 0) {
+            return res.status(404).json({ message: 'No Requests found' });
+        }
+
+        // Step 5: Fetch latest re-issues (optional enhancement)
+        const requestIds = requests.map(r => r.requestId);
+        const allReIssues = await ReIssued.find({
+            requestId: { $in: requestIds }
+        }).sort({ reIssuedDate: -1 }).lean();
+
+        const latestReIssueMap = {};
+        for (const re of allReIssues) {
+            if (!latestReIssueMap[re.requestId]) {
+                latestReIssueMap[re.requestId] = re;
+            }
+        }
+
+        // Step 6: Attach latest re-issue info
+        const enrichedRequests = requests.map(req => {
+            const reIssue = latestReIssueMap[req.requestId];
+            return {
+                id: req._id,
+                status: req.status,
+                products: req.products,
+                latestReIssue: reIssue || null
+            };
+        });
+
+        // Step 7: Respond
+        return res.status(200).json({
+            data: enrichedRequests,
+            pagination: {
+                totalRequests,
+                totalPages,
+                currentPage: page
+            },
+            filtersApplied: {
+                ...(status && { status }),
+                ...(products.length > 0 && { products })
+            }
+        });
+
+    } catch (err) {
+        console.error('Error in fetchUserRequestsOptimal:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
 const getUserRequests = async (req, res) => {
     try {
         const { rollNo } = req.body;
@@ -1061,6 +1144,7 @@ module.exports = {
     approveRequest,
     rejectRequest,
     fetchUserRequests,
+    fetchUserRequestsOptimal,
     fetchRefRequests,
     fetchRequestByStatus,
     getUserRequests,
