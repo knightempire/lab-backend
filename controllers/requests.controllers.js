@@ -712,6 +712,69 @@ const getUserRequests = async (req, res) => {
     }
 };
 
+
+
+//////////////////optimal//////////////////////
+const getUserRequestsOptimal = async (req, res) => {
+    try {
+        const { rollNo } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const status = req.query.status;
+        const products = req.query.products ? req.query.products.split(',') : [];
+
+        const PAGE_SIZE = 5;
+
+        // Step 1: Find the user
+        const user = await Users.findOne({ rollNo });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Step 2: Build filter query
+        const filter = { userId: user._id };
+        if (status) filter.status = status;
+        if (products.length > 0) filter.products = { $in: products };
+
+        // Step 3: Count total requests with filters
+        const totalRequests = await Requests.countDocuments(filter);
+        const totalPages = Math.ceil(totalRequests / PAGE_SIZE);
+        const skip = (page - 1) * PAGE_SIZE;
+
+        // Step 4: Fetch paginated requests
+        const requests = await Requests.find(filter)
+            .skip(skip)
+            .limit(PAGE_SIZE)
+            .populate('userId', 'name email rollNo')
+            .populate('referenceId', 'name email rollNo');
+
+        // Step 5: Prepare response
+        const responseData = requests.map(req => ({
+            id: req._id,
+            status: req.status,
+            products: req.products
+        }));
+
+        return res.status(200).json({
+            data: responseData,
+            pagination: {
+                totalRequests,
+                totalPages,
+                currentPage: page
+            },
+            filtersApplied: {
+                ...(status && { status }),
+                ...(products.length > 0 && { products })
+            }
+        });
+    } catch (err) {
+        console.error('Error in getUserRequestsOptimal:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+
 const fetchRefRequests = async (req, res) => {
     try {
         const { id: refId } = req.params;
@@ -1064,6 +1127,7 @@ module.exports = {
     fetchRefRequests,
     fetchRequestByStatus,
     getUserRequests,
+    getUserRequestsOptimal,
     collectProducts,
     updateProductRequest,
     closeUncollectedRequests,
