@@ -236,6 +236,67 @@ const fetchAllProducts = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+
+/////////////////////////////optional functions/////////////////////////////////////
+//GET /api/products/get/optimal/1?products=productA,productB
+
+const fetchAllProductsOptimal = async (req, res) => {
+    try {
+        const page = parseInt(req.params.page) || 1;
+        const productFilter = req.query.products ? req.query.products.split(',') : [];
+        const PAGE_SIZE = 5;
+
+        // Build filter
+        const filter = {};
+        if (productFilter.length > 0) {
+            filter.name = { $in: productFilter }; // Update if your product field is different
+        }
+
+        // Count and paginate
+        const totalProducts = await Products.countDocuments(filter);
+        const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
+        const skip = (page - 1) * PAGE_SIZE;
+
+        const products = await Products.find(filter)
+            .skip(skip)
+            .limit(PAGE_SIZE)
+            .lean();
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: 'No product to Display',
+                data: []
+            });
+        }
+
+        const responseData = products.map(p => ({
+            id: p._id,
+            products: [p.name] // adjust fields as needed
+        }));
+
+        return res.status(200).json({
+            data: responseData,
+            pagination: {
+                products: totalProducts,
+                totalPages,
+                currentPage: page
+            },
+            filtersApplied: {
+                ...(productFilter.length > 0 && { products: productFilter })
+            }
+        });
+    } catch (err) {
+        console.error('Error in fetchAllProductsOptimal:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+
 //Function to display a product
 const fetchProduct = async (req, res) => {
     try {
@@ -264,4 +325,4 @@ const fetchProduct = async (req, res) => {
         return res.status(500).json({ message: 'Server error' });
     }
 }
-module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts, bulkUpdateProducts };
+module.exports = { addProduct, updateProduct, fetchProduct, fetchAllProducts,fetchAllProductsOptimal, bulkUpdateProducts };
