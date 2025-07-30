@@ -1,5 +1,6 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 const { TEMPLATE_WELCOME_MAIL, TEMPLATE_RESET_MAIL, TEMPLATE_ADMIN_WELCOME_MAIL } = require('./mail_temp');
 const { registermailtoken, forgotmailtoken } = require('../auth/tokencreation');
 const { USER_NOTIFY_MAIL_TEMPLATE, USER_ACCEPT_MAIL_TEMPLATE, USER_REJECT_MAIL_TEMPLATE, USER_REMINDER_MAIL_TEMPLATE, USER_DELAY_MAIL_TEMPLATE, USER_RE_NOTIFY_MAIL_TEMPLATE, USER_RE_ACCEPT_MAIL_TEMPLATE, USER_RE_REJECT_MAIL_TEMPLATE, USER_RETURN_MAIL_TEMPLATE, USER_COLLECT_MAIL_TEMPLATE } = require('./user_mail_temp');
@@ -20,29 +21,37 @@ const transporter = nodemailer.createTransport({
 const sendregisterEmail = async (email, name, phoneNo, isFaculty, type) => {
   try {
     console.log("sendregisterEmail");
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const tokenData = { email, name, phoneNo, isFaculty };
+      const token = await registermailtoken(tokenData, type);
+      console.log(token);
 
-    const tokenData = { email, name, phoneNo, isFaculty };
-    const token = await registermailtoken(tokenData, type);
-    console.log(token);
+      const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=register`;
 
-    const verificationUrl = `${process.env.STATIC_URL}/auth/password?token=${token}&type=register`;
+      const htmlContent = type === 'admin'
+        ? TEMPLATE_ADMIN_WELCOME_MAIL(name, verificationUrl)
+        : TEMPLATE_WELCOME_MAIL(name, verificationUrl);
 
-    const htmlContent = type === 'admin'
-      ? TEMPLATE_ADMIN_WELCOME_MAIL(name, verificationUrl)
-      : TEMPLATE_WELCOME_MAIL(name, verificationUrl);
+      const mailOptions = {
+        from: process.env.EMAIL_FROM,  
+        to: email,
+        subject: 'Amudalab Equipment Management – Verify Your Account',
+        text: `Hello ${name},\n\nWelcome! Click the link below to verify your email and set your password:\n\n${verificationUrl}`,
+        html: htmlContent, 
+      };
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,  
-      to: email,
-      subject: 'Amudalab Equipment Management – Verify Your Account',
-      text: `Hello ${name},\n\nWelcome! Click the link below to verify your email and set your password:\n\n${verificationUrl}`,
-      html: htmlContent, 
-    };
-
-   
-    await transporter.sendMail(mailOptions);
-    console.log("Register email sent successfully ✅");
-
+    
+      await transporter.sendMail(mailOptions);
+      console.log("Register email sent successfully ✅");
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   } catch (error) {
     console.error("Error sending register email ❌:", error.response || error);
     throw new Error('Error sending register email');
