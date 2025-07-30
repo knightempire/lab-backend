@@ -197,6 +197,7 @@ const registerUser = async (req, res) => {
   
   // Function to user set the password
   const createuserandPassword = async (req, res) => {
+    let session;
     try {
       console.log('createuserandPassword function called');
       const { email, password, name, phoneNo ,isFaculty} = req.body;
@@ -224,11 +225,15 @@ const registerUser = async (req, res) => {
       const rollNo = match[1];  // Capture the part before @ as roll number
   
       console.log('Extracted roll number:', rollNo);
+      
+      session = await mongoose.startSession();
+      session.startTransaction();
   
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         console.log('Email already exists:', email);
+        await session.abortTransaction();
         return res.status(400).json({ message: 'Email already exists' });
       }
   
@@ -237,21 +242,22 @@ const registerUser = async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10); 
       console.log('Password hashed successfully');
   
-    const formattedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-    console.log('Formatted name:', formattedName);
-    
+      const formattedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+      console.log('Formatted name:', formattedName);
+      
       console.log('Creating new user with email:', email);
       const newUser = new User({
         email,
         password: hashedPassword,
-         name: formattedName,
+        name: formattedName,
         rollNo,  
         phoneNo, 
         isFaculty,
       });
   
       console.log('Saving new user to the database');
-      await newUser.save();
+      await newUser.save({ session });
+      await session.commitTransaction();
       console.log('User saved successfully:', newUser);
   
       return res.status(201).json({
@@ -265,8 +271,11 @@ const registerUser = async (req, res) => {
       });
   
     } catch (error) {
+      if (session) await session.abortTransaction();
       console.error('Error in setPassword:', error);
       return res.status(500).json({ message: 'Server error' });
+    } finally {
+      if (session) session.endSession();
     }
   };
   
@@ -314,6 +323,7 @@ const registerUser = async (req, res) => {
 
   // Function to reset user password
   const resetPassword = async (req, res) => {
+    let session;
     try {
       const { password, email } = req.body;
       console.log('resetPassword');
@@ -325,10 +335,14 @@ const registerUser = async (req, res) => {
         console.log('Missing email or password');
         return res.status(400).json({ message: 'Email and password are required' });
       }
+      
+      session = await mongoose.startSession();
+      session.startTransaction();
   
       const existingUser = await User.findOne({ email });
       if (!existingUser) {
         console.log('Email does not exist');
+        await session.abortTransaction();
         return res.status(400).json({ message: 'Email does not exist' });
       }
   
@@ -339,7 +353,8 @@ const registerUser = async (req, res) => {
       existingUser.password = hashedPassword;
   
 
-      await existingUser.save();
+      await existingUser.save({ session });
+      await session.commitTransaction();
       console.log('Password updated successfully:', existingUser);
   
       return res.status(200).json({
@@ -351,8 +366,11 @@ const registerUser = async (req, res) => {
         }
       });
     } catch (error) {
+      if (session) await session.abortTransaction();
       console.error('Error in resetPassword:', error);
       return res.status(500).json({ message: 'Server error' });
+    } finally {
+      if (session) session.endSession();
     }
   };
   
